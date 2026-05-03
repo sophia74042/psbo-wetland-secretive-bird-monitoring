@@ -1,7 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, Alert, Modal,
+  StyleSheet, Alert, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SPECIES, MINUTES, OBS_TYPES, OBS_COLORS } from '../data/constants';
 
@@ -17,6 +17,12 @@ function initObs(site) {
 
 function allMinutesFilled(obsData, coordIdx) {
   return MINUTES.every((_, mi) =>
+    SPECIES.some(sp => obsData[coordIdx][mi][sp].length > 0)
+  );
+}
+
+function hasAnyObservations(obsData, coordIdx) {
+  return MINUTES.some((_, mi) =>
     SPECIES.some(sp => obsData[coordIdx][mi][sp].length > 0)
   );
 }
@@ -49,7 +55,11 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
 
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
-      <View style={ms.container}>
+      <KeyboardAvoidingView 
+        style={ms.container} 
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 60 : 0}
+      >
         <View style={ms.header}>
           <Text style={ms.title}>{species} · minute {m ? m.min : ''}</Text>
           <Text style={ms.subtitle}>{m ? m.playing : ''}</Text>
@@ -99,7 +109,7 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
             <Text style={ms.saveText}>Save</Text>
           </TouchableOpacity>
         </View>
-      </View>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
@@ -114,7 +124,12 @@ export default function CollectionScreen({ route, navigation }) {
   const total = site.coords.length;
 
   function openCell(mi, sp) {
-    setModalInfo({ mi, sp, dets: obsData[coordIdx][mi][sp].map(d => ({ ...d })) });
+    const dets = obsData[coordIdx][mi][sp];
+    setModalInfo({ 
+      mi, 
+      sp, 
+      dets: dets.length > 0 ? dets.map(d => ({ ...d })) : [{ obs: 'H', dist: '' }]
+    });
   }
 
   function saveCell(mi, sp, dets) {
@@ -126,11 +141,23 @@ export default function CollectionScreen({ route, navigation }) {
   }
 
   function handleDone() {
-    if (!allMinutesFilled(obsData, coordIdx)) {
+    if (!hasAnyObservations(obsData, coordIdx)) {
       Alert.alert(
-        'Incomplete data',
-        'Please record at least one observation for every minute before proceeding.',
-        [{ text: 'OK' }]
+        'No observations recorded',
+        'No observations recorded for this point. Continue anyway?',
+        [
+          { text: 'Cancel', onPress: () => {}, style: 'cancel' },
+          { 
+            text: 'Continue', 
+            onPress: () => {
+              if (coordIdx < total - 1) {
+                setCoordIdx(coordIdx + 1);
+              } else {
+                navigation.navigate('Summary', { site, env, obsData });
+              }
+            }
+          },
+        ]
       );
       return;
     }
@@ -183,53 +210,76 @@ export default function CollectionScreen({ route, navigation }) {
         </View>
       </View>
 
-      <ScrollView horizontal contentContainerStyle={{ minWidth: '100%' }}>
-        <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
-          <View style={s.tableHeader}>
-            <Text style={[s.thCell, s.thMin]}>Min</Text>
-            {SPECIES.map(sp => <Text key={sp} style={[s.thCell, s.thSp]}>{sp}</Text>)}
-          </View>
+      <View style={s.tableHeader}>
+        <View style={s.birdNameCell}>
+          <Text style={s.thCell}></Text>
+        </View>
+        {SPECIES.map(sp => <Text key={sp} style={[s.thCell, s.thSp]}>{sp}</Text>)}
+      </View>
 
-          {rows.map(row => {
-            if (row.type === 'cycle') {
+      <ScrollView style={s.tableContainer} scrollEnabled={true}>
+        <View style={s.tableRow}>
+          <View style={s.minuteColumn}>
+            {rows.map(row => {
+              if (row.type === 'cycle') {
+                return (
+                  <View key={row.key} style={s.cycleRow}>
+                    <Text style={s.cycleLabel}>{row.label}</Text>
+                  </View>
+                );
+              }
+              const { m } = row;
               return (
-                <View key={row.key} style={s.cycleRow}>
-                  <Text style={s.cycleLabel}>{row.label}</Text>
+                <View key={row.key} style={s.dataRow}>
+                  <View style={s.minCell}>
+                    <Text style={s.minNum}>Min {m.min}</Text>
+                    <Text style={s.minPlaying}>{m.playing}</Text>
+                  </View>
                 </View>
               );
-            }
-            const { m, mi } = row;
-            return (
-              <View key={row.key} style={s.dataRow}>
-                <View style={s.minCell}>
-                  <Text style={s.minNum}>{m.min}</Text>
-                  <Text style={s.minPlaying}>{m.playing}</Text>
-                </View>
-                {SPECIES.map(sp => {
-                  const dets = obsData[coordIdx][mi][sp];
+            })}
+          </View>
+
+          <ScrollView horizontal scrollEventThrottle={16}>
+            <View style={s.speciesColumns}>
+              {rows.map(row => {
+                if (row.type === 'cycle') {
                   return (
-                    <TouchableOpacity
-                      key={sp}
-                      style={s.spCell}
-                      onPress={() => openCell(mi, sp)}
-                    >
-                      {dets.map((d, di) => (
-                        <View key={di} style={[s.detChip, { backgroundColor: OBS_COLORS[d.obs].bg, borderColor: OBS_COLORS[d.obs].border }]}>
-                          <Text style={[s.detChipText, { color: OBS_COLORS[d.obs].text }]}>
-                            {d.obs}{d.dist ? ' · ' + d.dist + 'm' : ''}
-                          </Text>
-                        </View>
-                      ))}
-                      <View style={s.addChip}>
-                        <Text style={s.addChipText}>+</Text>
-                      </View>
-                    </TouchableOpacity>
+                    <View key={row.key} style={s.cycleRow}>
+                      <Text style={s.cycleLabel}></Text>
+                    </View>
                   );
-                })}
-              </View>
-            );
-          })}
-        </ScrollView>
+                }
+                const { m, mi } = row;
+                return (
+                  <View key={row.key} style={s.dataRow}>
+                    {SPECIES.map(sp => {
+                      const dets = obsData[coordIdx][mi][sp];
+                      return (
+                        <TouchableOpacity
+                          key={sp}
+                          style={s.spCell}
+                          onPress={() => openCell(mi, sp)}
+                        >
+                          {dets.map((d, di) => (
+                            <View key={di} style={[s.detChip, { backgroundColor: OBS_COLORS[d.obs].bg, borderColor: OBS_COLORS[d.obs].border }]}>
+                              <Text style={[s.detChipText, { color: OBS_COLORS[d.obs].text }]}>
+                                {d.obs}{d.dist ? ' · ' + d.dist + 'm' : ''}
+                              </Text>
+                            </View>
+                          ))}
+                          <View style={s.addChip}>
+                            <Text style={s.addChipText}>+</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                );
+              })}
+            </View>
+          </ScrollView>
+        </View>
       </ScrollView>
 
       <View style={s.footer}>
@@ -269,20 +319,24 @@ const s = StyleSheet.create({
   coordVal: { fontSize: 12, color: '#888', marginBottom: 6 },
   progressBar: { height: 4, backgroundColor: '#eee', borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: 4, backgroundColor: '#378ADD', borderRadius: 2 },
-  tableHeader: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 4, backgroundColor: '#f5f5f3', borderBottomWidth: 0.5, borderBottomColor: '#ddd' },
-  thCell: { fontSize: 11, fontWeight: '500', color: '#888', textAlign: 'center' },
-  thMin: { width: 48, textAlign: 'left' },
+  tableHeader: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 4, backgroundColor: '#f5f5f3', borderBottomWidth: 0.5, borderBottomColor: '#ddd', zIndex: 10 },
+  thCell: { fontSize: 11, fontWeight: '500', color: '#888', textAlign: 'center', width: 72 },
   thSp: { width: 72 },
-  cycleRow: { backgroundColor: '#eee', paddingHorizontal: 8, paddingVertical: 3 },
+  tableContainer: { flex: 1 },
+  tableRow: { flexDirection: 'row' },
+  minuteColumn: { width: 65, backgroundColor: '#fff' },
+  speciesColumns: { flexDirection: 'column', paddingBottom: 100 },
+  cycleRow: { backgroundColor: '#eee', paddingHorizontal: 8, paddingVertical: 3, width: 65 },
   cycleLabel: { fontSize: 11, fontWeight: '500', color: '#666' },
   dataRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#eee', paddingVertical: 4, paddingHorizontal: 4, backgroundColor: '#fff' },
-  minCell: { width: 48, justifyContent: 'flex-start', paddingTop: 2 },
+  birdNameCell: { width: 65, justifyContent: 'flex-start', paddingTop: 2 },
+  minCell: { width: 65, minHeight: 30, justifyContent: 'flex-start', paddingTop: 2 },
   minNum: { fontSize: 12, fontWeight: '500', color: '#333' },
   minPlaying: { fontSize: 9, color: '#999', lineHeight: 13 },
   spCell: { width: 72, alignItems: 'center', paddingHorizontal: 2, gap: 2 },
   detChip: { borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2, borderWidth: 0.5, width: '100%', alignItems: 'center' },
   detChipText: { fontSize: 10, fontWeight: '500' },
-  addChip: { borderWidth: 0.5, borderColor: '#ccc', borderStyle: 'dashed', borderRadius: 4, width: '100%', alignItems: 'center', paddingVertical: 2 },
+  addChip: { borderWidth: 0.5, borderColor: '#ccc', borderStyle: 'dashed', borderRadius: 4, width: '100%', alignItems: 'center', justifyContent: 'center', minHeight: 30 },
   addChipText: { fontSize: 11, color: '#aaa' },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: 32, backgroundColor: '#fff', borderTopWidth: 0.5, borderTopColor: '#ddd' },
   doneBtn: { backgroundColor: '#E6F1FB', borderRadius: 8, borderWidth: 0.5, borderColor: '#85B7EB', padding: 14, alignItems: 'center' },

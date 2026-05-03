@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
-  StyleSheet, Alert,
+  StyleSheet, Alert, Modal,
 } from 'react-native';
 import { SITES, PRECIP_OPTIONS, WIND_OPTIONS, NOISE_OPTIONS } from '../data/constants';
 
@@ -24,8 +24,43 @@ function PickerRow({ label, options, value, onChange }) {
   );
 }
 
+function SiteDropdownModal({ visible, siteIdx, onSelectSite, onClose }) {
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
+      <View style={sms.container}>
+        <View style={sms.header}>
+          <Text style={sms.title}>Select a site</Text>
+        </View>
+        <ScrollView style={sms.scroll}>
+          {SITES.map((site, i) => (
+            <TouchableOpacity
+              key={site.name}
+              style={[sms.siteOption, i === siteIdx && sms.siteOptionActive]}
+              onPress={() => {
+                onSelectSite(i);
+                onClose();
+              }}
+            >
+              <Text style={[sms.siteName, i === siteIdx && sms.siteNameActive]}>
+                {site.name}
+              </Text>
+              <Text style={sms.sitePoints}>{site.coords.length} points</Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+        <View style={sms.footer}>
+          <TouchableOpacity style={sms.closeBtn} onPress={onClose}>
+            <Text style={sms.closeBtnText}>Close</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
 export default function SiteSetupScreen({ navigation }) {
   const [siteIdx, setSiteIdx] = useState(null);
+  const [siteModalVisible, setSiteModalVisible] = useState(false);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [temp, setTemp] = useState('');
   const [cloud, setCloud] = useState('');
@@ -49,19 +84,15 @@ export default function SiteSetupScreen({ navigation }) {
 
       <View style={s.card}>
         <Text style={s.cardTitle}>Site</Text>
-        {SITES.map((site, i) => (
-          <TouchableOpacity
-            key={site.name}
-            style={[s.siteRow, siteIdx === i && s.siteRowActive]}
-            onPress={() => setSiteIdx(i)}
-          >
-            <View style={[s.radio, siteIdx === i && s.radioActive]} />
-            <View style={{ flex: 1 }}>
-              <Text style={[s.siteName, siteIdx === i && s.siteNameActive]}>{site.name}</Text>
-              <Text style={s.siteCoords}>{site.coords.length} points</Text>
-            </View>
-          </TouchableOpacity>
-        ))}
+        <TouchableOpacity
+          style={[s.siteDropdown, siteIdx !== null && s.siteDropdownActive]}
+          onPress={() => setSiteModalVisible(true)}
+        >
+          <Text style={[s.siteDropdownText, siteIdx === null && s.siteDropdownPlaceholder]}>
+            {siteIdx !== null ? SITES[siteIdx].name : 'Select a site'}
+          </Text>
+          <Text style={s.siteDropdownArrow}>▼</Text>
+        </TouchableOpacity>
 
         <View style={s.fieldBlock}>
           <Text style={s.label}>Date</Text>
@@ -99,6 +130,13 @@ export default function SiteSetupScreen({ navigation }) {
       <TouchableOpacity style={s.btnPrimary} onPress={handleStart}>
         <Text style={s.btnPrimaryText}>Start survey →</Text>
       </TouchableOpacity>
+
+      <SiteDropdownModal
+        visible={siteModalVisible}
+        siteIdx={siteIdx}
+        onSelectSite={setSiteIdx}
+        onClose={() => setSiteModalVisible(false)}
+      />
     </ScrollView>
   );
 }
@@ -106,16 +144,14 @@ export default function SiteSetupScreen({ navigation }) {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f3' },
   content: { padding: 16, paddingBottom: 40 },
-  heading: { fontSize: 22, fontWeight: '500', color: '#1a1a1a', marginBottom: 16 },
+  heading: { fontSize: 22, fontWeight: '500', color: '#1a1a1a', marginBottom: 16, paddingTop: 20 },
   card: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 0.5, borderColor: '#ddd', padding: 16, marginBottom: 16 },
   cardTitle: { fontSize: 15, fontWeight: '500', color: '#1a1a1a', marginBottom: 12 },
-  siteRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10, paddingHorizontal: 10, borderRadius: 8, marginBottom: 4, borderWidth: 0.5, borderColor: 'transparent' },
-  siteRowActive: { backgroundColor: '#E6F1FB', borderColor: '#85B7EB' },
-  radio: { width: 16, height: 16, borderRadius: 8, borderWidth: 1.5, borderColor: '#bbb', marginRight: 10 },
-  radioActive: { borderColor: '#378ADD', backgroundColor: '#378ADD' },
-  siteName: { fontSize: 14, color: '#333', fontWeight: '400' },
-  siteNameActive: { color: '#0C447C', fontWeight: '500' },
-  siteCoords: { fontSize: 12, color: '#888', marginTop: 1 },
+  siteDropdown: { borderWidth: 0.5, borderColor: '#ccc', borderRadius: 8, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fafafa' },
+  siteDropdownActive: { backgroundColor: '#E6F1FB', borderColor: '#85B7EB' },
+  siteDropdownText: { fontSize: 14, color: '#333', fontWeight: '400', flex: 1 },
+  siteDropdownPlaceholder: { color: '#aaa' },
+  siteDropdownArrow: { fontSize: 12, color: '#888', marginLeft: 8 },
   fieldBlock: { marginTop: 10 },
   label: { fontSize: 12, color: '#666', marginBottom: 4 },
   input: { borderWidth: 0.5, borderColor: '#ccc', borderRadius: 8, padding: 10, fontSize: 14, color: '#1a1a1a', backgroundColor: '#fafafa' },
@@ -127,4 +163,19 @@ const s = StyleSheet.create({
   pillTextActive: { color: '#0C447C', fontWeight: '500' },
   btnPrimary: { backgroundColor: '#E6F1FB', borderRadius: 8, borderWidth: 0.5, borderColor: '#85B7EB', padding: 14, alignItems: 'center', marginTop: 4 },
   btnPrimaryText: { color: '#0C447C', fontSize: 16, fontWeight: '500' },
+});
+
+const sms = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: { paddingHorizontal: 20, paddingTop: 16, paddingBottom: 14, borderBottomWidth: 0.5, borderBottomColor: '#eee' },
+  title: { fontSize: 18, fontWeight: '500', color: '#1a1a1a' },
+  scroll: { flex: 1 },
+  siteOption: { paddingHorizontal: 16, paddingVertical: 14, borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0', flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  siteOptionActive: { backgroundColor: '#E6F1FB', borderLeftWidth: 4, borderLeftColor: '#378ADD', paddingLeft: 12 },
+  siteName: { fontSize: 15, color: '#333', fontWeight: '400' },
+  siteNameActive: { color: '#0C447C', fontWeight: '500' },
+  sitePoints: { fontSize: 12, color: '#888' },
+  footer: { padding: 16, borderTopWidth: 0.5, borderTopColor: '#eee' },
+  closeBtn: { borderWidth: 0.5, borderColor: '#ccc', borderRadius: 8, padding: 12, alignItems: 'center' },
+  closeBtnText: { fontSize: 15, color: '#555' },
 });
