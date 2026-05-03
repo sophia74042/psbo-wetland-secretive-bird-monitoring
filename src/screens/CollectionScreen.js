@@ -1,9 +1,12 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useEffect } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, Alert, Modal, KeyboardAvoidingView, Platform,
 } from 'react-native';
+import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { SPECIES, MINUTES, OBS_TYPES, OBS_COLORS } from '../data/constants';
+
+const SURVEY_AUDIO_SOURCE = require('../assets/birds/audio/5minSilence-SORA-VIRA-AMBI-GRHE-PBGR-stop.mp3');
 
 function initObs(site) {
   return site.coords.map(() =>
@@ -25,6 +28,17 @@ function hasAnyObservations(obsData, coordIdx) {
   return MINUTES.some((_, mi) =>
     SPECIES.some(sp => obsData[coordIdx][mi][sp].length > 0)
   );
+}
+
+function formatAudioTime(seconds) {
+  if (!seconds || Number.isNaN(seconds)) {
+    return '0:00';
+  }
+
+  const totalSeconds = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(totalSeconds / 60);
+  const remainingSeconds = totalSeconds % 60;
+  return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
 function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onClose, onSave }) {
@@ -119,9 +133,40 @@ export default function CollectionScreen({ route, navigation }) {
   const [coordIdx, setCoordIdx] = useState(0);
   const [obsData, setObsData] = useState(() => initObs(site));
   const [modalInfo, setModalInfo] = useState(null);
+  const [broadcastLoaded, setBroadcastLoaded] = useState(false);
+  const [broadcastMuted, setBroadcastMuted] = useState(false);
+  const player = useAudioPlayer(null);
+  const status = useAudioPlayerStatus(player);
 
   const coord = site.coords[coordIdx];
   const total = site.coords.length;
+  const audioDuration = status.duration || 0;
+  const audioCurrentTime = broadcastLoaded ? status.currentTime : 0;
+  const audioProgress = audioDuration > 0 ? Math.min(audioCurrentTime / audioDuration, 1) : 0;
+
+  const stopBroadcast = useCallback(async () => {
+    player.pause();
+    setBroadcastLoaded(false);
+    try {
+      await player.seekTo(0);
+    } catch (error) {
+      // The player may not have a source loaded yet.
+    }
+  }, [player]);
+
+  useEffect(() => {
+    if (status.didJustFinish) {
+      stopBroadcast();
+    }
+  }, [status.didJustFinish, stopBroadcast]);
+
+  useEffect(() => {
+    return navigation.addListener('blur', stopBroadcast);
+  }, [navigation, stopBroadcast]);
+
+  useEffect(() => {
+    player.muted = broadcastMuted;
+  }, [player, broadcastMuted]);
 
   function openCell(mi, sp) {
     const dets = obsData[coordIdx][mi][sp];
@@ -140,6 +185,41 @@ export default function CollectionScreen({ route, navigation }) {
     });
   }
 
+  async function toggleBroadcast() {
+    try {
+      if (status.playing) {
+        player.pause();
+        return;
+      }
+
+      if (broadcastLoaded && status.isLoaded && !status.didJustFinish) {
+        player.play();
+        return;
+      }
+
+      player.replace(SURVEY_AUDIO_SOURCE);
+      setBroadcastLoaded(true);
+      await player.seekTo(0);
+      player.play();
+    } catch (error) {
+      setBroadcastLoaded(false);
+      Alert.alert('Audio unavailable', 'The survey broadcast recording could not be played on this device.');
+    }
+  }
+
+  function toggleBroadcastMute() {
+    setBroadcastMuted(prev => !prev);
+  }
+
+  function advancePointOrFinish() {
+    stopBroadcast();
+    if (coordIdx < total - 1) {
+      setCoordIdx(coordIdx + 1);
+    } else {
+      navigation.navigate('Summary', { site, env, obsData });
+    }
+  }
+
   function handleDone() {
     if (!hasAnyObservations(obsData, coordIdx)) {
       Alert.alert(
@@ -149,28 +229,22 @@ export default function CollectionScreen({ route, navigation }) {
           { text: 'Cancel', onPress: () => {}, style: 'cancel' },
           { 
             text: 'Continue', 
-            onPress: () => {
-              if (coordIdx < total - 1) {
-                setCoordIdx(coordIdx + 1);
-              } else {
-                navigation.navigate('Summary', { site, env, obsData });
-              }
-            }
+            onPress: advancePointOrFinish
           },
         ]
       );
       return;
     }
-    if (coordIdx < total - 1) {
-      setCoordIdx(coordIdx + 1);
-    } else {
-      navigation.navigate('Summary', { site, env, obsData });
-    }
+    advancePointOrFinish();
   }
 
   function goBack() {
-    if (coordIdx > 0) setCoordIdx(coordIdx - 1);
-    else navigation.goBack();
+    stopBroadcast();
+    if (coordIdx > 0) {
+      setCoordIdx(coordIdx - 1);
+    } else {
+      navigation.goBack();
+    }
   }
 
   const filled = MINUTES.filter((_, mi) => SPECIES.some(sp => obsData[coordIdx][mi][sp].length > 0)).length;
@@ -216,6 +290,38 @@ export default function CollectionScreen({ route, navigation }) {
         <Text style={s.coordVal}>{coord.lat.toFixed(4)}, {coord.lng.toFixed(4)}</Text>
         <View style={s.progressBar}>
           <View style={[s.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
+        </View>
+      </View>
+
+      <View style={s.broadcastBar}>
+        <Text style={s.broadcastLabel}>Survey broadcast recording</Text>
+        <View style={s.broadcastPlayer}>
+          <TouchableOpacity
+            style={s.playPauseBtn}
+            onPress={toggleBroadcast}
+            accessibilityRole="button"
+            accessibilityLabel={status.playing ? 'Pause survey broadcast' : 'Play survey broadcast'}
+          >
+            <Text style={s.playPauseIcon}>{status.playing ? 'Ⅱ' : '▶'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[s.muteBtn, broadcastMuted && s.muteBtnActive]}
+            onPress={toggleBroadcastMute}
+            accessibilityRole="button"
+            accessibilityLabel={broadcastMuted ? 'Unmute survey broadcast' : 'Mute survey broadcast'}
+          >
+            <Text style={[s.muteBtnText, broadcastMuted && s.muteBtnTextActive]}>
+              {broadcastMuted ? 'Muted' : 'Mute'}
+            </Text>
+          </TouchableOpacity>
+          <View style={s.audioProgressBlock}>
+            <View style={s.audioProgressTrack}>
+              <View style={[s.audioProgressFill, { width: `${audioProgress * 100}%` }]} />
+            </View>
+            <Text style={s.audioProgressTime}>
+              {formatAudioTime(audioCurrentTime)} / {formatAudioTime(audioDuration)}
+            </Text>
+          </View>
         </View>
       </View>
 
@@ -344,6 +450,39 @@ const s = StyleSheet.create({
   coordVal: { fontSize: 12, color: '#888', marginBottom: 6 },
   progressBar: { height: 4, backgroundColor: '#eee', borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: 4, backgroundColor: '#378ADD', borderRadius: 2 },
+  broadcastBar: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: '#ddd' },
+  broadcastLabel: { fontSize: 12, fontWeight: '600', color: '#555', marginBottom: 6, textTransform: 'uppercase' },
+  broadcastPlayer: { flexDirection: 'row', alignItems: 'center' },
+  playPauseBtn: {
+    width: 42,
+    height: 36,
+    borderWidth: 0.5,
+    borderColor: '#85B7EB',
+    borderRadius: 8,
+    backgroundColor: '#E6F1FB',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  playPauseIcon: { color: '#0C447C', fontSize: 18, fontWeight: '600', lineHeight: 20 },
+  muteBtn: {
+    width: 58,
+    height: 36,
+    borderWidth: 0.5,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    backgroundColor: '#fafafa',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 10,
+  },
+  muteBtnActive: { backgroundColor: '#FAEEDA', borderColor: '#EF9F27' },
+  muteBtnText: { color: '#555', fontSize: 12, fontWeight: '600' },
+  muteBtnTextActive: { color: '#633806' },
+  audioProgressBlock: { flex: 1 },
+  audioProgressTrack: { height: 8, borderRadius: 4, backgroundColor: '#e8e8e2', overflow: 'hidden' },
+  audioProgressFill: { height: '100%', borderRadius: 4, backgroundColor: '#378ADD' },
+  audioProgressTime: { marginTop: 4, fontSize: 11, color: '#777' },
   tableHeader: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 4, backgroundColor: '#f5f5f3', borderBottomWidth: 0.5, borderBottomColor: '#ddd', zIndex: 10 },
   thCell: { fontSize: 11, fontWeight: '500', color: '#888', textAlign: 'center', width: 72 },
   thSp: { width: 72 },
