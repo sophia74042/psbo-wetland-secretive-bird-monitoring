@@ -18,6 +18,15 @@
         "backgroundColor": "#ffffff"
       },
       "package": "com.yourorg.birdsurvey"
-    }
+    },
+    "plugins": [
+      [
+        "expo-audio",
+        {
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ]
+    ]
   }
 }

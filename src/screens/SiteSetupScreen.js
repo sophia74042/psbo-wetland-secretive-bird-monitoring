@@ -75,7 +75,7 @@ export default function SiteSetupScreen({ navigation }) {
     if (noise === 'Too much noise to survey') { Alert.alert('Conditions too adverse', 'Noise level too high to survey.'); return; }
 
     const env = { temp, cloud, precip, wind, noise, date };
-    navigation.navigate('Collection', { site: SITES[siteIdx], env });
+    navigation.navigate('RemindersScreen', { site: SITES[siteIdx], env });
   }
 
   return (

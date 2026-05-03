@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, Alert, Modal, KeyboardAvoidingView, Platform,
@@ -186,6 +186,15 @@ export default function CollectionScreen({ route, navigation }) {
     rows.push({ type: 'minute', m, mi, key: `m${mi}` });
   });
 
+  const headerScrollRef = useRef(null);
+
+  const syncHeaderScroll = useCallback((event) => {
+    headerScrollRef.current?.scrollTo({
+      x: event.nativeEvent.contentOffset.x,
+      animated: false,
+    });
+  }, []);
+
   return (
     <View style={s.container}>
       <View style={s.topBar}>
@@ -214,7 +223,19 @@ export default function CollectionScreen({ route, navigation }) {
         <View style={s.birdNameCell}>
           <Text style={s.thCell}></Text>
         </View>
-        {SPECIES.map(sp => <Text key={sp} style={[s.thCell, s.thSp]}>{sp}</Text>)}
+
+        <ScrollView
+          ref={headerScrollRef}
+          horizontal
+          scrollEnabled={false}
+          showsHorizontalScrollIndicator={false}
+        >
+          <View style={s.headerSpeciesRow}>
+            {SPECIES.map(sp => (
+              <Text key={sp} style={[s.thCell, s.thSp]}>{sp}</Text>
+            ))}
+          </View>
+        </ScrollView>
       </View>
 
       <ScrollView style={s.tableContainer} scrollEnabled={true}>
@@ -240,7 +261,11 @@ export default function CollectionScreen({ route, navigation }) {
             })}
           </View>
 
-          <ScrollView horizontal scrollEventThrottle={16}>
+          <ScrollView
+            horizontal
+            scrollEventThrottle={16}
+            onScroll={syncHeaderScroll}
+          >
             <View style={s.speciesColumns}>
               {rows.map(row => {
                 if (row.type === 'cycle') {
@@ -341,6 +366,7 @@ const s = StyleSheet.create({
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: 32, backgroundColor: '#fff', borderTopWidth: 0.5, borderTopColor: '#ddd' },
   doneBtn: { backgroundColor: '#E6F1FB', borderRadius: 8, borderWidth: 0.5, borderColor: '#85B7EB', padding: 14, alignItems: 'center' },
   doneBtnText: { color: '#0C447C', fontSize: 16, fontWeight: '500' },
+  headerSpeciesRow: { flexDirection: 'row' },
 });
 
 const ms = StyleSheet.create({
