@@ -159,6 +159,7 @@ export default function CollectionScreen({ route, navigation }) {
   const [modalInfo, setModalInfo] = useState(null);
   const [broadcastLoaded, setBroadcastLoaded] = useState(false);
   const [broadcastMuted, setBroadcastMuted] = useState(false);
+  const [broadcastCycle, setBroadcastCycle] = useState(1);
   const player = useAudioPlayer(null);
   const status = useAudioPlayerStatus(player);
 
@@ -275,6 +276,15 @@ export default function CollectionScreen({ route, navigation }) {
   const progress = filled / MINUTES.length;
   const minuteRowHeights = MINUTES.map((_, mi) => getMinuteRowHeight(obsData, coordIdx, mi));
 
+  // Calculate which minute should be highlighted based on playback time and cycle
+  const elapsedMinutes = Math.floor(audioCurrentTime / 60);
+  let highlightedMin = null;
+  if (broadcastLoaded && broadcastCycle === 1) {
+    highlightedMin = elapsedMinutes + 1;
+  } else if (broadcastLoaded && broadcastCycle === 2) {
+    highlightedMin = elapsedMinutes + 11;
+  }
+
   let lastCycle = 0;
   const rows = [];
   MINUTES.forEach((m, mi) => {
@@ -348,6 +358,21 @@ export default function CollectionScreen({ route, navigation }) {
             </Text>
           </View>
         </View>
+        <View style={s.cycleToggle}>
+          {[1, 2].map(cycle => (
+            <TouchableOpacity
+              key={cycle}
+              style={[s.cycleToggleBtn, broadcastCycle === cycle && s.cycleToggleBtnActive]}
+              onPress={() => setBroadcastCycle(cycle)}
+              accessibilityRole="button"
+              accessibilityLabel={`Select cycle ${cycle}`}
+            >
+              <Text style={[s.cycleToggleText, broadcastCycle === cycle && s.cycleToggleTextActive]}>
+                Cycle {cycle}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </View>
       </View>
 
       <View style={s.tableHeader}>
@@ -381,8 +406,9 @@ export default function CollectionScreen({ route, navigation }) {
                 );
               }
               const { m, mi } = row;
+              const isHighlighted = highlightedMin === m.min;
               return (
-                <View key={row.key} style={[s.dataRow, { minHeight: minuteRowHeights[mi] }]}>
+                <View key={row.key} style={[s.dataRow, isHighlighted && s.dataRowHighlighted, { minHeight: minuteRowHeights[mi] }]}>
                   <View style={s.minCell}>
                     <Text style={s.minNum}>Min {m.min}</Text>
                     <Text style={s.minPlaying}>{m.playing}</Text>
@@ -407,8 +433,9 @@ export default function CollectionScreen({ route, navigation }) {
                   );
                 }
                 const { m, mi } = row;
+                const isHighlighted = highlightedMin === m.min;
                 return (
-                  <View key={row.key} style={[s.dataRow, { minHeight: minuteRowHeights[mi] }]}>
+                  <View key={row.key} style={[s.dataRow, isHighlighted && s.dataRowHighlighted, { minHeight: minuteRowHeights[mi] }]}>
                     {SPECIES.map(sp => {
                       const dets = obsData[coordIdx][mi][sp];
                       return (
@@ -508,6 +535,25 @@ const s = StyleSheet.create({
   audioProgressTrack: { height: 8, borderRadius: 4, backgroundColor: '#e8e8e2', overflow: 'hidden' },
   audioProgressFill: { height: '100%', borderRadius: 4, backgroundColor: '#378ADD' },
   audioProgressTime: { marginTop: 4, fontSize: 11, color: '#777' },
+  cycleToggle: {
+    flexDirection: 'row',
+    marginTop: 10,
+    borderWidth: 0.5,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#fafafa',
+  },
+  cycleToggleBtn: {
+    flex: 1,
+    alignItems: 'center',
+    paddingVertical: 8,
+    borderRightWidth: 0.5,
+    borderRightColor: '#ccc',
+  },
+  cycleToggleBtnActive: { backgroundColor: '#E6F1FB' },
+  cycleToggleText: { fontSize: 13, fontWeight: '500', color: '#555' },
+  cycleToggleTextActive: { color: '#0C447C' },
   tableHeader: { flexDirection: 'row', paddingVertical: 6, paddingHorizontal: 4, backgroundColor: '#f5f5f3', borderBottomWidth: 0.5, borderBottomColor: '#ddd', zIndex: 10 },
   thCell: { fontSize: 11, fontWeight: '500', color: '#888', textAlign: 'center', width: 72 },
   thSp: { width: 72 },
@@ -518,6 +564,7 @@ const s = StyleSheet.create({
   cycleRow: { backgroundColor: '#eee', paddingHorizontal: 8, paddingVertical: 3, width: 65 },
   cycleLabel: { fontSize: 11, fontWeight: '500', color: '#666' },
   dataRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#eee', paddingVertical: 4, paddingHorizontal: 4, backgroundColor: '#fff' },
+  dataRowHighlighted: { backgroundColor: '#FFF8E1' },
   birdNameCell: { width: 65, justifyContent: 'flex-start', paddingTop: 2 },
   minCell: { width: 65, minHeight: 30, justifyContent: 'flex-start', paddingTop: 2 },
   minNum: { fontSize: 12, fontWeight: '500', color: '#333' },
