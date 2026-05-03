@@ -79,7 +79,7 @@ export default function SiteSetupScreen({ navigation }) {
   }
 
   return (
-    <ScrollView style={s.container} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled">
+    <ScrollView style={s.container} contentContainerStyle={s.content} keyboardShouldPersistTaps="handled" scrollEnabled={false}>
       <Text style={s.heading}>New survey</Text>
 
       <View style={s.card}>
@@ -144,7 +144,7 @@ export default function SiteSetupScreen({ navigation }) {
 const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#f5f5f3' },
   content: { padding: 16, paddingBottom: 40 },
-  heading: { fontSize: 22, fontWeight: '500', color: '#1a1a1a', marginBottom: 16, paddingTop: 20 },
+  heading: { fontSize: 22, fontWeight: '500', color: '#1a1a1a', marginBottom: 16, paddingTop: 40 },
   card: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 0.5, borderColor: '#ddd', padding: 16, marginBottom: 16 },
   cardTitle: { fontSize: 15, fontWeight: '500', color: '#1a1a1a', marginBottom: 12 },
   siteDropdown: { borderWidth: 0.5, borderColor: '#ccc', borderRadius: 8, padding: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#fafafa' },

@@ -47,8 +47,8 @@ export const MINUTES = [
   { min: 6,  cycle: 1, playing: 'SORA ×3' },
   { min: 7,  cycle: 1, playing: 'VIRA ×3' },
   { min: 8,  cycle: 1, playing: 'AMBI ×1' },
-  { min: 9,  cycle: 1, playing: 'PBGR ×2' },
-  { min: 10, cycle: 1, playing: 'Silence' },
+  { min: 9,  cycle: 1, playing: 'GRHE x3'},
+  { min: 10, cycle: 1, playing: 'PBGR ×2' },
   { min: 11, cycle: 2, playing: 'Silence' },
   { min: 12, cycle: 2, playing: 'Silence' },
   { min: 13, cycle: 2, playing: 'Silence' },
@@ -57,8 +57,8 @@ export const MINUTES = [
   { min: 16, cycle: 2, playing: 'SORA ×3' },
   { min: 17, cycle: 2, playing: 'VIRA ×3' },
   { min: 18, cycle: 2, playing: 'AMBI ×1' },
-  { min: 19, cycle: 2, playing: 'PBGR ×2' },
-  { min: 20, cycle: 2, playing: 'Silence' },
+  { min: 19, cycle: 2, playing: 'GRHE ×3' },
+  { min: 20, cycle: 2, playing: 'PBGR ×2' },
 ];
 
 export const PRECIP_OPTIONS = ['None', 'Drizzle', 'Fog', 'Mist', 'Rain', 'Snow'];
