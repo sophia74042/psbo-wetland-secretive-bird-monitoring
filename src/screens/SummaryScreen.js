@@ -10,7 +10,7 @@ function buildCSV(site, env, obsData) {
   const header = [
     'Site', 'Date', 'Temp_C', 'Cloud_pct', 'Precip', 'Wind', 'Noise',
     'Point', 'Latitude', 'Longitude', 'Minute', 'Cycle', 'Playing',
-    'Species', 'Individual', 'Detection', 'Distance_m',
+    'Species', 'Individual', 'Detection', 'Distance_m', 'Notes',
   ].join(',');
 
   const lines = [header];
@@ -26,16 +26,16 @@ function buildCSV(site, env, obsData) {
               env.precip, `"${env.wind}"`, `"${env.noise}"`,
               ci + 1, coord.lat, coord.lng,
               m.min, m.cycle, `"${m.playing}"`,
-              sp, di + 1, d.obs, d.dist || '',
+              sp, di + 1, d.obs, d.dist || '', `"${(d.notes || '').replace(/"/g, '""')}"`,
             ].join(','));
           });
         } else {
           lines.push([
             `"${site.name}"`, env.date, env.temp, env.cloud,
             env.precip, `"${env.wind}"`, `"${env.noise}"`,
-            ci + 1, coord.lat, coord.lng,
-            m.min, m.cycle, `"${m.playing}"`,
-            sp, '', '', '',
+              ci + 1, coord.lat, coord.lng,
+              m.min, m.cycle, `"${m.playing}"`,
+            sp, '', '', '', '',
           ].join(','));
         }
       });
@@ -104,7 +104,7 @@ export default function SummaryScreen({ route, navigation }) {
                       {allDets.map((d, i) => (
                         <View key={i} style={[s.chip, { backgroundColor: OBS_COLORS[d.obs].bg, borderColor: OBS_COLORS[d.obs].border }]}>
                           <Text style={[s.chipText, { color: OBS_COLORS[d.obs].text }]}>
-                            {d.obs}{d.dist ? ' · ' + d.dist + 'm' : ''} m{d.min}
+                            {d.obs}{d.dist ? ' · ' + d.dist + 'm' : ''}{d.notes ? ' · note' : ''} m{d.min}
                           </Text>
                         </View>
                       ))}

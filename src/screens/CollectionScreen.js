@@ -7,6 +7,8 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { SPECIES, MINUTES, OBS_TYPES, OBS_COLORS } from '../data/constants';
 
 const SURVEY_AUDIO_SOURCE = require('../assets/birds/audio/5minSilence-SORA-VIRA-AMBI-GRHE-PBGR-stop.mp3');
+const EMPTY_MINUTE_ROW_HEIGHT = 42;
+const DETECTION_CHIP_ROW_HEIGHT = 22;
 
 function initObs(site) {
   return site.coords.map(() =>
@@ -41,11 +43,20 @@ function formatAudioTime(seconds) {
   return `${minutes}:${String(remainingSeconds).padStart(2, '0')}`;
 }
 
+function getMinuteRowHeight(obsData, coordIdx, minuteIdx) {
+  const maxDetections = Math.max(
+    0,
+    ...SPECIES.map(sp => obsData[coordIdx][minuteIdx][sp].length)
+  );
+
+  return EMPTY_MINUTE_ROW_HEIGHT + maxDetections * DETECTION_CHIP_ROW_HEIGHT;
+}
+
 function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onClose, onSave }) {
   const [localDets, setLocalDets] = useState(() => detections.map(d => ({ ...d })));
 
   function addIndividual() {
-    setLocalDets(prev => [...prev, { obs: 'H', dist: '' }]);
+    setLocalDets(prev => [...prev, { obs: 'H', dist: '', notes: '' }]);
   }
 
   function updateObs(i, obs) {
@@ -54,6 +65,10 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
 
   function updateDist(i, dist) {
     setLocalDets(prev => prev.map((d, idx) => idx === i ? { ...d, dist } : d));
+  }
+
+  function updateNotes(i, notes) {
+    setLocalDets(prev => prev.map((d, idx) => idx === i ? { ...d, notes } : d));
   }
 
   function removeIndividual(i) {
@@ -105,6 +120,15 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
                   />
                   <Text style={ms.distUnit}>m</Text>
                 </View>
+                <TextInput
+                  style={ms.notesInput}
+                  value={det.notes}
+                  onChangeText={t => updateNotes(i, t)}
+                  placeholder="notes"
+                  placeholderTextColor="#aaa"
+                  multiline
+                  textAlignVertical="top"
+                />
               </View>
               <TouchableOpacity style={ms.delBtn} onPress={() => removeIndividual(i)}>
                 <Text style={ms.delX}>×</Text>
@@ -173,7 +197,7 @@ export default function CollectionScreen({ route, navigation }) {
     setModalInfo({ 
       mi, 
       sp, 
-      dets: dets.length > 0 ? dets.map(d => ({ ...d })) : [{ obs: 'H', dist: '' }]
+      dets: dets.length > 0 ? dets.map(d => ({ notes: '', ...d })) : [{ obs: 'H', dist: '', notes: '' }]
     });
   }
 
@@ -249,6 +273,7 @@ export default function CollectionScreen({ route, navigation }) {
 
   const filled = MINUTES.filter((_, mi) => SPECIES.some(sp => obsData[coordIdx][mi][sp].length > 0)).length;
   const progress = filled / MINUTES.length;
+  const minuteRowHeights = MINUTES.map((_, mi) => getMinuteRowHeight(obsData, coordIdx, mi));
 
   let lastCycle = 0;
   const rows = [];
@@ -355,9 +380,9 @@ export default function CollectionScreen({ route, navigation }) {
                   </View>
                 );
               }
-              const { m } = row;
+              const { m, mi } = row;
               return (
-                <View key={row.key} style={s.dataRow}>
+                <View key={row.key} style={[s.dataRow, { minHeight: minuteRowHeights[mi] }]}>
                   <View style={s.minCell}>
                     <Text style={s.minNum}>Min {m.min}</Text>
                     <Text style={s.minPlaying}>{m.playing}</Text>
@@ -383,7 +408,7 @@ export default function CollectionScreen({ route, navigation }) {
                 }
                 const { m, mi } = row;
                 return (
-                  <View key={row.key} style={s.dataRow}>
+                  <View key={row.key} style={[s.dataRow, { minHeight: minuteRowHeights[mi] }]}>
                     {SPECIES.map(sp => {
                       const dets = obsData[coordIdx][mi][sp];
                       return (
@@ -395,7 +420,7 @@ export default function CollectionScreen({ route, navigation }) {
                           {dets.map((d, di) => (
                             <View key={di} style={[s.detChip, { backgroundColor: OBS_COLORS[d.obs].bg, borderColor: OBS_COLORS[d.obs].border }]}>
                               <Text style={[s.detChipText, { color: OBS_COLORS[d.obs].text }]}>
-                                {d.obs}{d.dist ? ' · ' + d.dist + 'm' : ''}
+                                {d.obs}
                               </Text>
                             </View>
                           ))}
@@ -522,6 +547,17 @@ const ms = StyleSheet.create({
   distRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   distInput: { borderWidth: 0.5, borderColor: '#ccc', borderRadius: 8, padding: 8, fontSize: 13, color: '#1a1a1a', width: 90 },
   distUnit: { fontSize: 13, color: '#888' },
+  notesInput: {
+    borderWidth: 0.5,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: 8,
+    fontSize: 13,
+    color: '#1a1a1a',
+    backgroundColor: '#fafafa',
+    minHeight: 64,
+    marginTop: 8,
+  },
   delBtn: { padding: 8 },
   delX: { fontSize: 20, color: '#ccc', fontWeight: '300' },
   addBtn: { borderWidth: 0.5, borderColor: '#85B7EB', borderRadius: 8, padding: 12, alignItems: 'center', marginTop: 4 },
