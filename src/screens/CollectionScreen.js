@@ -422,13 +422,17 @@ export default function CollectionScreen({ route, navigation }) {
             horizontal
             scrollEventThrottle={16}
             onScroll={syncHeaderScroll}
+            bounces={false}
+            overScrollMode="never"
           >
             <View style={s.speciesColumns}>
               {rows.map(row => {
                 if (row.type === 'cycle') {
                   return (
-                    <View key={row.key} style={s.cycleRow}>
-                      <Text style={s.cycleLabel}></Text>
+                    <View key={row.key} style={[s.dataRow, { backgroundColor: '#eee' }]}>
+                      {SPECIES.map(sp => (
+                        <View key={sp} style={[s.spCell, {minHeight: 12.75 }]} />
+                      ))}
                     </View>
                   );
                 }
@@ -561,7 +565,7 @@ const s = StyleSheet.create({
   tableRow: { flexDirection: 'row' },
   minuteColumn: { width: 65, backgroundColor: '#fff' },
   speciesColumns: { flexDirection: 'column', paddingBottom: 100 },
-  cycleRow: { backgroundColor: '#eee', paddingHorizontal: 8, paddingVertical: 3, width: 65 },
+  cycleRow: { backgroundColor: '#eee', paddingHorizontal: 8, paddingVertical: 4, width: 65 },
   cycleLabel: { fontSize: 11, fontWeight: '500', color: '#666' },
   dataRow: { flexDirection: 'row', borderBottomWidth: 0.5, borderBottomColor: '#eee', paddingVertical: 4, paddingHorizontal: 4, backgroundColor: '#fff' },
   dataRowHighlighted: { backgroundColor: '#FFF8E1' },

@@ -133,6 +133,7 @@ export default function RemindersScreen({ route, navigation }) {
   const player = useAudioPlayer(null);
   const status = useAudioPlayerStatus(player);
   const [activeBirdCode, setActiveBirdCode] = useState(null);
+  const [currentImageIndices, setCurrentImageIndices] = useState({});
 
   useEffect(() => {
     setAudioModeAsync({
@@ -204,6 +205,12 @@ export default function RemindersScreen({ route, navigation }) {
     }
   }
 
+  function handleImageScroll(event, bird) {
+    const contentOffsetX = event.nativeEvent.contentOffset.x;
+    const index = Math.round(contentOffsetX / imageWidth);
+    setCurrentImageIndices(prev => ({ ...prev, [bird.code]: index }));
+  }
+
   return (
     <View style={s.container}>
       <View style={s.topBar}>
@@ -228,6 +235,8 @@ export default function RemindersScreen({ route, navigation }) {
                 pagingEnabled
                 showsHorizontalScrollIndicator={false}
                 style={s.imageCarousel}
+                onScroll={(event) => handleImageScroll(event, bird)}
+                scrollEventThrottle={16}
               >
                 {bird.imageSources.length > 0 ? (
                   bird.imageSources.map((imageSource, idx) => (
@@ -249,7 +258,7 @@ export default function RemindersScreen({ route, navigation }) {
               </ScrollView>
               <View style={s.imageHint}>
                 <Text style={s.imageHintText}>
-                  {bird.imageSources.length || bird.imageFiles.length} image slots
+                  Image {(currentImageIndices[bird.code] || 0) + 1}/{bird.imageSources.length || bird.imageFiles.length}
                 </Text>
               </View>
 
