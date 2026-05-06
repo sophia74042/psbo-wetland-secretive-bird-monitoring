@@ -160,7 +160,7 @@ export default function RemindersScreen({ route, navigation }) {
       navigation.goBack();
       return;
     }
-    navigation.navigate('Collection', { site, env });
+    navigation.navigate('EquipmentSetup', { site, env });
   }
 
   async function playAudio(bird) {

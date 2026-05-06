@@ -1,37 +1,36 @@
 export const SITES = [
   {
-    name: 'Ridgefield Marsh A',
+    name: 'KI.066 Bear Creek Wetland',
     coords: [
-      { lat: 45.8123, lng: -122.4567 },
-      { lat: 45.8145, lng: -122.4589 },
-      { lat: 45.8167, lng: -122.4601 },
-      { lat: 45.8190, lng: -122.4623 },
+      { lat: 47.730183, lng: -122.070800 },
     ],
   },
   {
-    name: 'Ridgefield Marsh B',
+    name: 'KI.001 Keller Ridge Mitigation Bank',
     coords: [
-      { lat: 45.8201, lng: -122.4701 },
-      { lat: 45.8223, lng: -122.4723 },
-      { lat: 45.8245, lng: -122.4745 },
+      { lat: 47.678543, lng: -122.102967 },
+      { lat: 47.676770, lng: -122.104530 },
+      { lat: 47.678555, lng: -122.099060 },
+      { lat: 47.680620, lng: -122.097630 }
     ],
   },
   {
-    name: 'Sauvie Island Wetlands',
+    name: 'KI.003 Sammamish Pkway',
     coords: [
-      { lat: 45.7012, lng: -122.7834 },
-      { lat: 45.7034, lng: -122.7856 },
-      { lat: 45.7056, lng: -122.7878 },
-      { lat: 45.7078, lng: -122.7900 },
-      { lat: 45.7100, lng: -122.7922 },
+      { lat: 47.656977, lng: -122.119533 },
+      { lat: 47.653825, lng: -122.115325 },
+      { lat: 47.649003, lng: -122.106658 },
     ],
   },
   {
-    name: 'Tualatin River NWR',
+    name: 'KI.040 Soos Creek Wetland Complex',
     coords: [
-      { lat: 45.3901, lng: -122.8234 },
-      { lat: 45.3923, lng: -122.8256 },
-      { lat: 45.3945, lng: -122.8278 },
+      { lat: 47.429217, lng: -122.174523 },
+      { lat: 47.424418, lng: -122.172140 }, 
+      { lat: 47.419870, lng: -122.162290 },
+      { lat: 47.412220, lng: -122.159313 },
+      { lat: 47.402500, lng: -122.157222 },
+      { lat: 47.398715, lng: -122.157127 },
     ],
   },
 ];

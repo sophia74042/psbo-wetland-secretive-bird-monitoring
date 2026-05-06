@@ -4,6 +4,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import SiteSetupScreen from './src/screens/SiteSetupScreen';
 import RemindersScreen from './src/screens/RemindersScreen';
+import EquipmentSetupScreen from './src/screens/EquipmentSetupScreen';
 import CollectionScreen from './src/screens/CollectionScreen';
 import SummaryScreen from './src/screens/SummaryScreen';
 
@@ -16,6 +17,7 @@ export default function App() {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
           <Stack.Screen name="SiteSetup" component={SiteSetupScreen} />
           <Stack.Screen name="RemindersScreen" component={RemindersScreen} />
+          <Stack.Screen name="EquipmentSetup" component={EquipmentSetupScreen} />
           <Stack.Screen name="Collection" component={CollectionScreen} />
           <Stack.Screen name="Summary" component={SummaryScreen} />
         </Stack.Navigator>
