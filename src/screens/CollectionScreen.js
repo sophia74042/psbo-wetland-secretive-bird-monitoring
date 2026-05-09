@@ -174,9 +174,10 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
 }
 
 export default function CollectionScreen({ route, navigation }) {
-  const { site, env = {}, landmarks = {}, environmentData = {}, obsData: initialObsData, coordIdx: initialCoordIdx } = route.params;
+  const { site, env = {}, landmarks = {}, environmentData = {}, startTimes: passedStartTimes = {}, obsData: initialObsData, coordIdx: initialCoordIdx } = route.params;
   const [coordIdx, setCoordIdx] = useState(initialCoordIdx);
   const [obsData, setObsData] = useState(() => initialObsData || initObs(site));
+  const [startTimes, setStartTimes] = useState(passedStartTimes);
   const [modalInfo, setModalInfo] = useState(null);
   const [broadcastLoaded, setBroadcastLoaded] = useState(false);
   const [broadcastMuted, setBroadcastMuted] = useState(false);
@@ -268,6 +269,13 @@ export default function CollectionScreen({ route, navigation }) {
         return;
       }
 
+      // Record the start time when broadcast is first played at this point
+      if (!startTimes[coordIdx]) {
+        const now = new Date();
+        const timestamp = now.toISOString();
+        setStartTimes(prev => ({ ...prev, [coordIdx]: timestamp }));
+      }
+
       player.replace(SURVEY_AUDIO_SOURCE);
       setBroadcastLoaded(true);
       await player.seekTo(0);
@@ -304,9 +312,9 @@ export default function CollectionScreen({ route, navigation }) {
   function advancePointOrFinish() {
     stopBroadcast();
     if (coordIdx < total - 1) {
-      navigation.push('SurveyPointSetup', { site, env, obsData, environmentData, coordIdx: coordIdx + 1 });
+      navigation.push('SurveyPointSetup', { site, env, obsData, environmentData, startTimes, coordIdx: coordIdx + 1 });
     } else {
-      navigation.navigate('Summary', { site, env, obsData, environmentData });
+      navigation.navigate('Summary', { site, env, obsData, environmentData, startTimes });
     }
   }
 

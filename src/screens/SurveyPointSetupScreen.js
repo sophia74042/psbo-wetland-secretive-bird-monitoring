@@ -35,8 +35,12 @@ function initObs(site) {
 }
 
 export default function SurveyPointSetupScreen({ route, navigation }) {
-  const { site, env = {}, obsData : passedObsData, environmentData: passedEnvData } = route.params;
+  const { site, date, env: passedEnv = {}, obsData : passedObsData, environmentData: passedEnvData, startTimes: passedStartTimes = {} } = route.params;
   const coordIdx = route.params.coordIdx || 0; // start at first point
+  
+  // Create env object with date if provided
+  const env = passedEnv.date ? passedEnv : { ...passedEnv, date };
+  
   const obsData = useMemo(
     () => passedObsData ?? initObs(site),
     [passedObsData, site]
@@ -45,6 +49,7 @@ export default function SurveyPointSetupScreen({ route, navigation }) {
 
   const [landmarks, setLandmarks] = useState({});
   const [environmentData, setEnvironmentData] = useState(() => passedEnvData || {});
+  const [startTimes, setStartTimes] = useState(passedStartTimes);
   const [currentName, setCurrentName] = useState('');
   const [currentDistance, setCurrentDistance] = useState('');
   
@@ -90,6 +95,7 @@ export default function SurveyPointSetupScreen({ route, navigation }) {
       obsData,
       landmarks,
       environmentData,
+      startTimes,
       coordIdx
     });
   }

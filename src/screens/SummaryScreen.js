@@ -48,7 +48,7 @@ function buildCSV(site, env, obsData, environmentData = {}) {
 }
 
 export default function SummaryScreen({ route, navigation }) {
-  const { site, env = {}, obsData, environmentData = {} } = route.params;
+  const { site, env = {}, obsData, environmentData = {}, startTimes = {} } = route.params;
   async function handleExport() {
     try {
       const csv = buildCSV(site, env, obsData, environmentData);
@@ -68,15 +68,10 @@ export default function SummaryScreen({ route, navigation }) {
       </View>
       <ScrollView contentContainerStyle={s.content}>
         <View style={s.card}>
-          <Text style={s.cardTitle}>Site & conditions</Text>
+          <Text style={s.cardTitle}>Site Overview</Text>
           {[
             ['Site', site.name],
             ['Date', env.date],
-            ['Temp', env.temp ? `${env.temp}°C` : '—'],
-            ['Cloud cover', env.cloud ? `${env.cloud}%` : '—'],
-            ['Precipitation', env.precip],
-            ['Wind', env.wind],
-            ['Noise', env.noise],
           ].map(([k, v]) => (
             <View key={k} style={s.summRow}>
               <Text style={s.summKey}>{k}</Text>
@@ -93,10 +88,27 @@ export default function SummaryScreen({ route, navigation }) {
               <Text style={s.cardTitle}>Point {ci + 1}</Text>
               <Text style={s.coordText}>{coord.lat.toFixed(4)}, {coord.lng.toFixed(4)}</Text>
               
+              {/* Display survey start time for this point if available */}
+              {startTimes[ci] && (
+                <View style={s.startTimeSection}>
+                  <Text style={s.startTimeLabel}>Survey started</Text>
+                  <Text style={s.startTimeValue}>
+                    {new Date(startTimes[ci]).toLocaleString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric', 
+                      hour: '2-digit', 
+                      minute: '2-digit',
+                      second: '2-digit',
+                      hour12: true 
+                    })}
+                  </Text>
+                </View>
+              )}
+              
               {/* Display environmental data for this point if available */}
               {Object.keys(pointEnv).length > 0 && (
                 <View style={s.envSection}>
-                  <Text style={s.envLabel}>Environmental conditions at this point:</Text>
+                  <Text style={s.envLabel}>Environmental conditions</Text>
                   {[
                     ['Temp', pointEnv.temp ? `${pointEnv.temp}°C` : '—'],
                     ['Cloud cover', pointEnv.cloud ? `${pointEnv.cloud}%` : '—'],
@@ -157,6 +169,9 @@ const s = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 0.5, borderColor: '#ddd', padding: 16, marginBottom: 16 },
   cardTitle: { fontSize: 15, fontWeight: '500', color: '#1a1a1a', marginBottom: 10 },
   coordText: { fontSize: 12, color: '#888', marginBottom: 8 },
+  startTimeSection: { backgroundColor: '#f5f9ff', borderRadius: 6, borderWidth: 0.5, borderColor: '#c5e0f7', padding: 10, marginBottom: 12 },
+  startTimeLabel: { fontSize: 12, fontWeight: '600', color: '#0c447c', marginBottom: 4 },
+  startTimeValue: { fontSize: 13, fontWeight: '500', color: '#1a5490' },
   envSection: { backgroundColor: '#f0f7ff', borderRadius: 6, borderWidth: 0.5, borderColor: '#d4e6f7', padding: 10, marginBottom: 12 },
   envLabel: { fontSize: 12, fontWeight: '600', color: '#1a5490', marginBottom: 8 },
   envRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
