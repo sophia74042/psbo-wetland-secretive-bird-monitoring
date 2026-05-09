@@ -160,6 +160,8 @@ export default function CollectionScreen({ route, navigation }) {
   const [broadcastLoaded, setBroadcastLoaded] = useState(false);
   const [broadcastMuted, setBroadcastMuted] = useState(false);
   const [broadcastCycle, setBroadcastCycle] = useState(1);
+  const [lastFinishedCycle, setLastFinishedCycle] = useState(null);
+  const finishHandlingRef = useRef(false);
   const player = useAudioPlayer(null);
   const status = useAudioPlayerStatus(player);
 
@@ -180,10 +182,33 @@ export default function CollectionScreen({ route, navigation }) {
   }, [player]);
 
   useEffect(() => {
-    if (status.didJustFinish) {
-      stopBroadcast();
+    if (status.didJustFinish && !finishHandlingRef.current) {
+      finishHandlingRef.current = true;
+      
+      if (broadcastCycle === 1) {
+        Alert.alert(
+          'Cycle 1 complete',
+          'Play the survey broadcast recording again to start cycle 2'
+        );
+        setBroadcastCycle(2);
+        setLastFinishedCycle(1);
+        stopBroadcast();
+        setBroadcastLoaded(false);
+      } else if (broadcastCycle === 2) {
+        const isLastPoint = coordIdx === total - 1;
+        Alert.alert(
+          'Survey complete at point',
+          isLastPoint
+            ? `You've completed the survey at Point ${coordIdx + 1}! Finalize your observations and press 'Finish survey'.`
+            : `You've completed the survey at Point ${coordIdx + 1}! Finalize your observations and continue to the next point.`
+        );
+        setLastFinishedCycle(2);
+        stopBroadcast();
+      }
+    } else if (!status.didJustFinish) {
+      finishHandlingRef.current = false;
     }
-  }, [status.didJustFinish, stopBroadcast]);
+  }, [status.didJustFinish, broadcastCycle, coordIdx, total, stopBroadcast]);
 
   useEffect(() => {
     return navigation.addListener('blur', stopBroadcast);
@@ -234,6 +259,25 @@ export default function CollectionScreen({ route, navigation }) {
 
   function toggleBroadcastMute() {
     setBroadcastMuted(prev => !prev);
+  }
+
+  // TODO: Remove these skip functions and buttons after testing
+  async function skipBackward() {
+    try {
+      const newTime = Math.max(0, audioCurrentTime - 10);
+      await player.seekTo(newTime);
+    } catch (error) {
+      console.error('Error skipping backward:', error);
+    }
+  }
+
+  async function skipForward() {
+    try {
+      const newTime = Math.min(audioDuration, audioCurrentTime + 10);
+      await player.seekTo(newTime);
+    } catch (error) {
+      console.error('Error skipping forward:', error);
+    }
   }
 
   function advancePointOrFinish() {
@@ -339,6 +383,26 @@ export default function CollectionScreen({ route, navigation }) {
           >
             <Text style={s.playPauseIcon}>{status.playing ? 'Ⅱ' : '▶'}</Text>
           </TouchableOpacity>
+          
+          {/* TODO: Remove skip buttons after testing */}
+          <TouchableOpacity
+            style={s.skipBtn}
+            onPress={skipBackward}
+            accessibilityRole="button"
+            accessibilityLabel="Skip back 10 seconds"
+          >
+            <Text style={s.skipBtnText}>⏮ -10s</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={s.skipBtn}
+            onPress={skipForward}
+            accessibilityRole="button"
+            accessibilityLabel="Skip forward 10 seconds"
+          >
+            <Text style={s.skipBtnText}>+10s ⏭</Text>
+          </TouchableOpacity>
+          
           <TouchableOpacity
             style={[s.muteBtn, broadcastMuted && s.muteBtnActive]}
             onPress={toggleBroadcastMute}
@@ -360,17 +424,14 @@ export default function CollectionScreen({ route, navigation }) {
         </View>
         <View style={s.cycleToggle}>
           {[1, 2].map(cycle => (
-            <TouchableOpacity
+            <View
               key={cycle}
               style={[s.cycleToggleBtn, broadcastCycle === cycle && s.cycleToggleBtnActive]}
-              onPress={() => setBroadcastCycle(cycle)}
-              accessibilityRole="button"
-              accessibilityLabel={`Select cycle ${cycle}`}
             >
               <Text style={[s.cycleToggleText, broadcastCycle === cycle && s.cycleToggleTextActive]}>
                 Cycle {cycle}
               </Text>
-            </TouchableOpacity>
+            </View>
           ))}
         </View>
       </View>
@@ -521,6 +582,19 @@ const s = StyleSheet.create({
     marginRight: 10,
   },
   playPauseIcon: { color: '#0C447C', fontSize: 18, fontWeight: '600', lineHeight: 20 },
+  // TODO: Remove skipBtn styles after testing
+  skipBtn: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderWidth: 0.5,
+    borderColor: '#ccc',
+    borderRadius: 6,
+    backgroundColor: '#f9f9f9',
+    marginRight: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  skipBtnText: { fontSize: 11, fontWeight: '500', color: '#555' },
   muteBtn: {
     width: 58,
     height: 36,

@@ -25,6 +25,8 @@ function PickerRow({ label, options, value, onChange }) {
 }
 
 function SiteDropdownModal({ visible, siteIdx, onSelectSite, onClose }) {
+  const sortedSites = [...SITES].sort((a, b) => a.name.localeCompare(b.name));
+  
   return (
     <Modal visible={visible} animationType="slide" presentationStyle="pageSheet">
       <View style={sms.container}>
@@ -32,21 +34,24 @@ function SiteDropdownModal({ visible, siteIdx, onSelectSite, onClose }) {
           <Text style={sms.title}>Select a site</Text>
         </View>
         <ScrollView style={sms.scroll}>
-          {SITES.map((site, i) => (
-            <TouchableOpacity
-              key={site.name}
-              style={[sms.siteOption, i === siteIdx && sms.siteOptionActive]}
-              onPress={() => {
-                onSelectSite(i);
-                onClose();
-              }}
-            >
-              <Text style={[sms.siteName, i === siteIdx && sms.siteNameActive]}>
-                {site.name}
-              </Text>
-              <Text style={sms.sitePoints}>{site.coords.length} points</Text>
-            </TouchableOpacity>
-          ))}
+          {sortedSites.map((site) => {
+            const originalIndex = SITES.findIndex(s => s.name === site.name);
+            return (
+              <TouchableOpacity
+                key={site.name}
+                style={[sms.siteOption, originalIndex === siteIdx && sms.siteOptionActive]}
+                onPress={() => {
+                  onSelectSite(originalIndex);
+                  onClose();
+                }}
+              >
+                <Text style={[sms.siteName, originalIndex === siteIdx && sms.siteNameActive]}>
+                  {site.name}
+                </Text>
+                <Text style={sms.sitePoints}>{site.coords.length} points</Text>
+              </TouchableOpacity>
+            );
+          })}
         </ScrollView>
         <View style={sms.footer}>
           <TouchableOpacity style={sms.closeBtn} onPress={onClose}>
