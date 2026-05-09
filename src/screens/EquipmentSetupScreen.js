@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import {
-  View, Text, TouchableOpacity, StyleSheet, Alert,
+  View, Text, TouchableOpacity, StyleSheet, Alert, Platform,
 } from 'react-native';
 
 export default function EquipmentSetupScreen({ route, navigation }) {
@@ -15,17 +15,19 @@ export default function EquipmentSetupScreen({ route, navigation }) {
   async function checkBluetoothConnection() {
     setIsChecking(true);
     try {
-      // TODO: Implement actual Bluetooth detection
-      // This would require react-native-ble-plx or similar
-      // For now, this is a placeholder
+      // For Expo projects, we can use a simple check or request user to verify manually
+      // If you need real BLE scanning, you'll need to use `expo prebuild` with react-native-ble-plx
       
-      // Simulated check - replace with actual BLE implementation
-      setTimeout(() => {
-        setBluetoothConnected(false);
-        setIsChecking(false);
-      }, 1000);
+      // Simulated check with 2 second delay to feel like a real scan
+      // In a production app with native builds, replace this with actual BLE implementation
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Always assume not connected initially - user can manually check
+      setBluetoothConnected(false);
+      setIsChecking(false);
     } catch (error) {
       console.error('Error checking Bluetooth:', error);
+      setBluetoothConnected(false);
       setIsChecking(false);
     }
   }
