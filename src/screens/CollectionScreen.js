@@ -165,9 +165,9 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
 }
 
 export default function CollectionScreen({ route, navigation }) {
-  const { site, env, landmarks = {}, coordIdx: initialCoordIdx } = route.params;
+  const { site, env, landmarks = {}, obsData: initialObsData, coordIdx: initialCoordIdx } = route.params;
   const [coordIdx, setCoordIdx] = useState(initialCoordIdx);
-  const [obsData, setObsData] = useState(() => initObs(site));
+  const [obsData, setObsData] = useState(() => initialObsData || initObs(site));
   const [modalInfo, setModalInfo] = useState(null);
   const [broadcastLoaded, setBroadcastLoaded] = useState(false);
   const [broadcastMuted, setBroadcastMuted] = useState(false);
