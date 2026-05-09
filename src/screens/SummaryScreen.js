@@ -22,8 +22,9 @@ function buildCSV(site, env, obsData) {
               `"${site.name}"`, env.date, env.temp, env.cloud,
               env.precip, `"${env.wind}"`, `"${env.noise}"`]);
 
+  lines.push([]);
   lines.push(dataheader);
-  
+
   site.coords.forEach((coord, ci) => {
     MINUTES.forEach((m, mi) => {
       SPECIES.forEach(sp => {

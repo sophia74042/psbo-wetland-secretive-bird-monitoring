@@ -76,6 +76,15 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
   }
 
   function handleSave() {
+    // Validate that all detections have a distance
+    const missingDistance = localDets.some(d => !d.dist || !d.dist.trim());
+    if (missingDistance) {
+      Alert.alert(
+        'Missing distance',
+        'Please enter a distance for all recorded individuals.'
+      );
+      return;
+    }
     onSave(localDets);
     onClose();
   }
@@ -320,12 +329,20 @@ export default function CollectionScreen({ route, navigation }) {
   }
 
   function goBack() {
-    stopBroadcast();
-    // if (coordIdx > 0) {
-    //   setCoordIdx(coordIdx - 1);
-    // } else {
-    navigation.goBack();
-    // }
+    Alert.alert(
+        'Are you sure you want to go back?',
+        'The data you\'ve recorded at this site will be lost.',
+        [
+          { text: 'Cancel', onPress: () => {}, style: 'cancel' },
+          { 
+            text: 'Continue', 
+            onPress: () => {
+              stopBroadcast();
+              navigation.goBack();
+            }
+          },
+        ]
+      );
   }
 
   const filled = MINUTES.filter((_, mi) => SPECIES.some(sp => obsData[coordIdx][mi][sp].length > 0)).length;
