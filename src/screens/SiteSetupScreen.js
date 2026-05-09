@@ -67,20 +67,11 @@ export default function SiteSetupScreen({ navigation }) {
   const [siteIdx, setSiteIdx] = useState(null);
   const [siteModalVisible, setSiteModalVisible] = useState(false);
   const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
-  const [temp, setTemp] = useState('');
-  const [cloud, setCloud] = useState('');
-  const [precip, setPrecip] = useState('');
-  const [wind, setWind] = useState('');
-  const [noise, setNoise] = useState('');
 
   function handleStart() {
     if (siteIdx === null) { Alert.alert('Select a site first.'); return; }
-    if (!precip || !wind || !noise) { Alert.alert('Please complete all environmental fields.'); return; }
-    if (wind === 'Too windy to survey') { Alert.alert('Conditions too adverse', 'Wind is too strong to survey.'); return; }
-    if (noise === 'Too much noise to survey') { Alert.alert('Conditions too adverse', 'Noise level too high to survey.'); return; }
-
-    const env = { temp, cloud, precip, wind, noise, date };
-    navigation.navigate('RemindersScreen', { site: SITES[siteIdx], env });
+    
+    navigation.navigate('RemindersScreen', { site: SITES[siteIdx], date });
   }
 
   return (
@@ -109,27 +100,6 @@ export default function SiteSetupScreen({ navigation }) {
             placeholderTextColor="#aaa"
           />
         </View>
-      </View>
-
-      <View style={s.card}>
-        <Text style={s.cardTitle}>Environmental conditions</Text>
-
-        <View style={s.row2}>
-          <View style={[s.fieldBlock, { flex: 1, marginRight: 8 }]}>
-            <Text style={s.label}>Temp (°C)</Text>
-            <TextInput style={s.input} value={temp} onChangeText={setTemp}
-              keyboardType="numeric" placeholder="e.g. 14" placeholderTextColor="#aaa" />
-          </View>
-          <View style={[s.fieldBlock, { flex: 1 }]}>
-            <Text style={s.label}>Cloud cover (%)</Text>
-            <TextInput style={s.input} value={cloud} onChangeText={setCloud}
-              keyboardType="numeric" placeholder="0–100" placeholderTextColor="#aaa" />
-          </View>
-        </View>
-
-        <PickerRow label="Precipitation" options={PRECIP_OPTIONS} value={precip} onChange={setPrecip} />
-        <PickerRow label="Wind" options={WIND_OPTIONS} value={wind} onChange={setWind} />
-        <PickerRow label="Noise" options={NOISE_OPTIONS} value={noise} onChange={setNoise} />
       </View>
 
       <TouchableOpacity style={s.btnPrimary} onPress={handleStart}>

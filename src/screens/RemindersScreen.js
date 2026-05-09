@@ -127,7 +127,7 @@ function formatAudioTime(seconds) {
 }
 
 export default function RemindersScreen({ route, navigation }) {
-  const { site, env } = route.params || {};
+  const { site, date } = route.params || {};
   const { width } = useWindowDimensions();
   const imageWidth = width - 32;
   const player = useAudioPlayer(null);
@@ -156,11 +156,11 @@ export default function RemindersScreen({ route, navigation }) {
   }, [navigation, player]);
 
   function continueToCollection() {
-    if (!site || !env) {
+    if (!site || !date) {
       navigation.goBack();
       return;
     }
-    navigation.navigate('EquipmentSetup', { site, env });
+    navigation.navigate('EquipmentSetup', { site, date });
   }
 
   async function playAudio(bird) {

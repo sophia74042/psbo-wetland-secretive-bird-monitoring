@@ -174,7 +174,7 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
 }
 
 export default function CollectionScreen({ route, navigation }) {
-  const { site, env, landmarks = {}, obsData: initialObsData, coordIdx: initialCoordIdx } = route.params;
+  const { site, env = {}, landmarks = {}, environmentData = {}, obsData: initialObsData, coordIdx: initialCoordIdx } = route.params;
   const [coordIdx, setCoordIdx] = useState(initialCoordIdx);
   const [obsData, setObsData] = useState(() => initialObsData || initObs(site));
   const [modalInfo, setModalInfo] = useState(null);
@@ -304,9 +304,9 @@ export default function CollectionScreen({ route, navigation }) {
   function advancePointOrFinish() {
     stopBroadcast();
     if (coordIdx < total - 1) {
-      navigation.push('SurveyPointSetup', { site, env, obsData, coordIdx: coordIdx + 1 });
+      navigation.push('SurveyPointSetup', { site, env, obsData, environmentData, coordIdx: coordIdx + 1 });
     } else {
-      navigation.navigate('Summary', { site, env, obsData });
+      navigation.navigate('Summary', { site, env, obsData, environmentData });
     }
   }
 

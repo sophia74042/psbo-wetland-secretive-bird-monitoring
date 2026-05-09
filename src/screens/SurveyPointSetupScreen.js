@@ -3,7 +3,26 @@ import {
   View, Text, ScrollView, TouchableOpacity, TextInput,
   StyleSheet, Alert, KeyboardAvoidingView, Platform,
 } from 'react-native';
-import { SPECIES, MINUTES } from '../data/constants';
+import { SPECIES, MINUTES, PRECIP_OPTIONS, WIND_OPTIONS, NOISE_OPTIONS } from '../data/constants';
+
+function PickerRow({ label, options, value, onChange }) {
+  return (
+    <View style={s.fieldBlock}>
+      <Text style={s.label}>{label}</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={s.pillScroll}>
+        {options.map(opt => (
+          <TouchableOpacity
+            key={opt}
+            style={[s.pill, value === opt && s.pillActive]}
+            onPress={() => onChange(opt)}
+          >
+            <Text style={[s.pillText, value === opt && s.pillTextActive]}>{opt}</Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+    </View>
+  );
+}
 
 function initObs(site) {
   return site.coords.map(() =>
@@ -16,7 +35,7 @@ function initObs(site) {
 }
 
 export default function SurveyPointSetupScreen({ route, navigation }) {
-  const { site, env, obsData : passedObsData } = route.params;
+  const { site, env = {}, obsData : passedObsData, environmentData: passedEnvData } = route.params;
   const coordIdx = route.params.coordIdx || 0; // start at first point
   const obsData = useMemo(
     () => passedObsData ?? initObs(site),
@@ -25,8 +44,25 @@ export default function SurveyPointSetupScreen({ route, navigation }) {
   const coord = site.coords[coordIdx];
 
   const [landmarks, setLandmarks] = useState({});
+  const [environmentData, setEnvironmentData] = useState(() => passedEnvData || {});
   const [currentName, setCurrentName] = useState('');
   const [currentDistance, setCurrentDistance] = useState('');
+  
+  // Get current environmental values for this coordIdx
+  const currentEnv = environmentData[coordIdx] || {};
+  const temp = currentEnv.temp || '';
+  const cloud = currentEnv.cloud || '';
+  const precip = currentEnv.precip || '';
+  const wind = currentEnv.wind || '';
+  const noise = currentEnv.noise || '';
+
+  // Helper function to update environmental data for current point
+  function updateEnvironment(key, value) {
+    setEnvironmentData(prev => ({
+      ...prev,
+      [coordIdx]: { ...prev[coordIdx], [key]: value }
+    }));
+  }
 
   function addLandmark() {
     if (!currentName.trim()) {
@@ -53,6 +89,7 @@ export default function SurveyPointSetupScreen({ route, navigation }) {
       env, 
       obsData,
       landmarks,
+      environmentData,
       coordIdx
     });
   }
@@ -79,6 +116,27 @@ export default function SurveyPointSetupScreen({ route, navigation }) {
         <Text style={s.subtitle}>Point {coordIdx + 1}</Text>
         <Text style={s.coordText}>{coord.lat.toFixed(4)}, {coord.lng.toFixed(4)}</Text>
 
+         <View style={s.card}>
+            <Text style={s.cardTitle}>Environmental conditions</Text>
+
+            <View style={s.row2}>
+                <View style={[s.fieldBlock, { flex: 1, marginRight: 8 }]}>
+                <Text style={s.label}>Temp (°C)</Text>
+                <TextInput style={s.input} value={temp} onChangeText={(v) => updateEnvironment('temp', v)}
+                    keyboardType="numeric" placeholder="e.g. 14" placeholderTextColor="#aaa" />
+                </View>
+                <View style={[s.fieldBlock, { flex: 1 }]}>
+                <Text style={s.label}>Cloud cover (%)</Text>
+                <TextInput style={s.input} value={cloud} onChangeText={(v) => updateEnvironment('cloud', v)}
+                    keyboardType="numeric" placeholder="0–100" placeholderTextColor="#aaa" />
+                </View>
+            </View>
+
+            <PickerRow label="Precipitation" options={PRECIP_OPTIONS} value={precip} onChange={(v) => updateEnvironment('precip', v)} />
+            <PickerRow label="Wind" options={WIND_OPTIONS} value={wind} onChange={(v) => updateEnvironment('wind', v)} />
+            <PickerRow label="Noise" options={NOISE_OPTIONS} value={noise} onChange={(v) => updateEnvironment('noise', v)} />
+        </View>
+        
         <View style={s.section}>
           <Text style={s.sectionTitle}>Reference Landmarks</Text>
           <Text style={s.sectionDesc}>
@@ -289,6 +347,57 @@ const s = StyleSheet.create({
     color: '#378ADD', 
     fontSize: 13, 
     fontWeight: '600' 
+  },
+  fieldBlock: {
+    marginBottom: 12
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '500',
+    color: '#1a1a1a',
+    marginBottom: 8
+  },
+  pillScroll: {
+    flexGrow: 0
+  },
+  pill: {
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 0.5,
+    borderColor: '#ccc',
+    backgroundColor: '#fafafa',
+    marginRight: 8
+  },
+  pillActive: {
+    backgroundColor: '#E6F1FB',
+    borderColor: '#85B7EB'
+  },
+  pillText: {
+    fontSize: 13,
+    color: '#555'
+  },
+  pillTextActive: {
+    color: '#0C447C',
+    fontWeight: '500'
+  },
+  row2: {
+    flexDirection: 'row',
+    marginBottom: 12
+  },
+  card: {
+    backgroundColor: '#fff',
+    borderRadius: 8,
+    borderWidth: 0.5,
+    borderColor: '#ddd',
+    padding: 12,
+    marginBottom: 16
+  },
+  cardTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1a1a1a',
+    marginBottom: 12
   },
   info: {
     backgroundColor: '#f0f7ff',

@@ -7,7 +7,7 @@ import * as Sharing from 'expo-sharing';
 import { SPECIES, MINUTES, OBS_COLORS } from '../data/constants';
 import { File, Paths } from 'expo-file-system/next';
 
-function buildCSV(site, env, obsData) {
+function buildCSV(site, env, obsData, environmentData = {}) {
   const header = [
     'Site', 'Date', 'Temp_C', 'Cloud_pct', 'Precip', 'Wind', 'Noise',
   ].join(',');
@@ -26,6 +26,8 @@ function buildCSV(site, env, obsData) {
   lines.push(dataheader);
 
   site.coords.forEach((coord, ci) => {
+    // Use per-point environmental data if available, otherwise use site-wide env
+    const pointEnv = environmentData[ci] || env;
     MINUTES.forEach((m, mi) => {
       SPECIES.forEach(sp => {
         const dets = obsData[ci][mi][sp];
@@ -46,10 +48,10 @@ function buildCSV(site, env, obsData) {
 }
 
 export default function SummaryScreen({ route, navigation }) {
-  const { site, env, obsData } = route.params;
+  const { site, env = {}, obsData, environmentData = {} } = route.params;
   async function handleExport() {
     try {
-      const csv = buildCSV(site, env, obsData);
+      const csv = buildCSV(site, env, obsData, environmentData);
       const filename = `survey_${site.name.replace(/\s+/g, '_')}_${env.date}.csv`;
       const file = new File(Paths.document, filename);
       await file.write(csv);
@@ -85,10 +87,31 @@ export default function SummaryScreen({ route, navigation }) {
 
         {site.coords.map((coord, ci) => {
           const anyDet = SPECIES.some(sp => MINUTES.some((_, mi) => obsData[ci][mi][sp].length > 0));
+          const pointEnv = environmentData[ci] || {};
           return (
             <View key={ci} style={s.card}>
               <Text style={s.cardTitle}>Point {ci + 1}</Text>
               <Text style={s.coordText}>{coord.lat.toFixed(4)}, {coord.lng.toFixed(4)}</Text>
+              
+              {/* Display environmental data for this point if available */}
+              {Object.keys(pointEnv).length > 0 && (
+                <View style={s.envSection}>
+                  <Text style={s.envLabel}>Environmental conditions at this point:</Text>
+                  {[
+                    ['Temp', pointEnv.temp ? `${pointEnv.temp}°C` : '—'],
+                    ['Cloud cover', pointEnv.cloud ? `${pointEnv.cloud}%` : '—'],
+                    ['Precipitation', pointEnv.precip || '—'],
+                    ['Wind', pointEnv.wind || '—'],
+                    ['Noise', pointEnv.noise || '—'],
+                  ].map(([k, v]) => (
+                    <View key={k} style={s.envRow}>
+                      <Text style={s.envKey}>{k}</Text>
+                      <Text style={s.envVal}>{v}</Text>
+                    </View>
+                  ))}
+                </View>
+              )}
+              
               {!anyDet && <Text style={s.noDet}>No detections recorded</Text>}
               {SPECIES.map(sp => {
                 const allDets = [];
@@ -134,6 +157,11 @@ const s = StyleSheet.create({
   card: { backgroundColor: '#fff', borderRadius: 12, borderWidth: 0.5, borderColor: '#ddd', padding: 16, marginBottom: 16 },
   cardTitle: { fontSize: 15, fontWeight: '500', color: '#1a1a1a', marginBottom: 10 },
   coordText: { fontSize: 12, color: '#888', marginBottom: 8 },
+  envSection: { backgroundColor: '#f0f7ff', borderRadius: 6, borderWidth: 0.5, borderColor: '#d4e6f7', padding: 10, marginBottom: 12 },
+  envLabel: { fontSize: 12, fontWeight: '600', color: '#1a5490', marginBottom: 8 },
+  envRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
+  envKey: { fontSize: 12, color: '#1a5490' },
+  envVal: { fontSize: 12, color: '#1a5490', fontWeight: '400', textAlign: 'right' },
   summRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', paddingVertical: 5, borderBottomWidth: 0.5, borderBottomColor: '#f0f0f0', flexWrap: 'wrap', gap: 4 },
   summKey: { fontSize: 13, color: '#888' },
   summVal: { fontSize: 13, color: '#1a1a1a', fontWeight: '400', textAlign: 'right', flex: 1, marginLeft: 8 },
