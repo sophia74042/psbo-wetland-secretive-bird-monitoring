@@ -5,38 +5,37 @@ import {
 import * as FileSystem from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import { SPECIES, MINUTES, OBS_COLORS } from '../data/constants';
+import { File, Paths } from 'expo-file-system/next';
 
 function buildCSV(site, env, obsData) {
   const header = [
     'Site', 'Date', 'Temp_C', 'Cloud_pct', 'Precip', 'Wind', 'Noise',
-    'Point', 'Latitude', 'Longitude', 'Minute', 'Cycle', 'Playing',
-    'Species', 'Individual', 'Detection', 'Distance_m', 'Notes',
   ].join(',');
 
-  const lines = [header];
+  const dataheader = [
+    'Point', 'Latitude', 'Longitude', 'Minute', 'Cycle', 'Playing',
+    'Species', 'Individual', 'Detection', 'Distance_m', 'Notes',
+  ]
 
+  const lines = [header];
+  lines.push([
+              `"${site.name}"`, env.date, env.temp, env.cloud,
+              env.precip, `"${env.wind}"`, `"${env.noise}"`]);
+
+  lines.push(dataheader);
+  
   site.coords.forEach((coord, ci) => {
     MINUTES.forEach((m, mi) => {
       SPECIES.forEach(sp => {
         const dets = obsData[ci][mi][sp];
         if (dets.length > 0) {
           dets.forEach((d, di) => {
-            lines.push([
-              `"${site.name}"`, env.date, env.temp, env.cloud,
-              env.precip, `"${env.wind}"`, `"${env.noise}"`,
+              lines.push([
               ci + 1, coord.lat, coord.lng,
               m.min, m.cycle, `"${m.playing}"`,
               sp, di + 1, d.obs, d.dist || '', `"${(d.notes || '').replace(/"/g, '""')}"`,
             ].join(','));
           });
-        } else {
-          lines.push([
-            `"${site.name}"`, env.date, env.temp, env.cloud,
-            env.precip, `"${env.wind}"`, `"${env.noise}"`,
-              ci + 1, coord.lat, coord.lng,
-              m.min, m.cycle, `"${m.playing}"`,
-            sp, '', '', '', '',
-          ].join(','));
         }
       });
     });
@@ -47,14 +46,13 @@ function buildCSV(site, env, obsData) {
 
 export default function SummaryScreen({ route, navigation }) {
   const { site, env, obsData } = route.params;
-
   async function handleExport() {
     try {
       const csv = buildCSV(site, env, obsData);
       const filename = `survey_${site.name.replace(/\s+/g, '_')}_${env.date}.csv`;
-      const fileUri = FileSystem.documentDirectory + filename;
-      await FileSystem.writeAsStringAsync(fileUri, csv, { encoding: FileSystem.EncodingType.UTF8 });
-      await Sharing.shareAsync(fileUri, { mimeType: 'text/csv', dialogTitle: 'Export survey CSV' });
+      const file = new File(Paths.document, filename);
+      await file.write(csv);
+      await Sharing.shareAsync(file.uri, { mimeType: 'text/csv', dialogTitle: 'Export survey CSV' });
     } catch (e) {
       Alert.alert('Export failed', e.message);
     }
