@@ -18,7 +18,7 @@ const BIRDS = [
       require('../assets/birds/images/ambi-3.jpg'),
       require('../assets/birds/images/ambi-4.jpg'),
     ],
-    audioSource: require('../assets/birds/audio/ambi.mp3'),
+    audioSource: require('../assets/birds/audio/ambi_rr.mp3'),
     notes: [
       'Stocky, striped, buffy colored',
       'About half the size of a great blue heron',
