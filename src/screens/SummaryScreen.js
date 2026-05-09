@@ -7,22 +7,51 @@ import * as Sharing from 'expo-sharing';
 import { SPECIES, MINUTES, OBS_COLORS } from '../data/constants';
 import { File, Paths } from 'expo-file-system/next';
 
-function buildCSV(site, env, obsData, environmentData = {}) {
+function buildCSV(site, env, obsData, environmentData = {}, startTimes = {}) {
   const header = [
-    'Site', 'Date', 'Temp_C', 'Cloud_pct', 'Precip', 'Wind', 'Noise',
+    'Site', 'Date'
   ].join(',');
 
   const dataheader = [
-    'Point', 'Latitude', 'Longitude', 'Minute', 'Cycle', 'Playing',
+    'Point', 'Latitude', 'Longitude', 'Minute',
     'Species', 'Individual', 'Detection', 'Distance_m', 'Notes',
   ]
 
   const lines = [header];
   lines.push([
-              `"${site.name}"`, env.date, env.temp, env.cloud,
-              env.precip, `"${env.wind}"`, `"${env.noise}"`]);
+              `"${site.name}"`, env.date]);
 
-  lines.push([]);
+  lines.push('');
+  lines.push(['SURVEY POINT SUMMARY']);
+  lines.push('');
+
+  // Add summary for each survey point with environmental data in a single row
+  // Header row for env data
+  const envHeaders = ['Point', 'Latitude', 'Longitude', 'Survey Started', 'Temp (°C)', 'Cloud Cover (%)', 'Precipitation', 'Wind', 'Noise'];
+  lines.push(envHeaders);
+
+  site.coords.forEach((coord, ci) => {
+    const pointEnv = environmentData[ci] || env;
+    
+    // Data row for this point
+    const surveyStarted = startTimes[ci] ? new Date(startTimes[ci]).toLocaleString() : '';
+    const envData = [
+      `Point ${ci + 1}`,
+      coord.lat,
+      coord.lng,
+      surveyStarted,
+      pointEnv.temp || '',
+      pointEnv.cloud || '',
+      pointEnv.precip || '',
+      pointEnv.wind || '',
+      pointEnv.noise || ''
+    ];
+    lines.push(envData);
+    lines.push('');
+  });
+
+  lines.push(['OBSERVATION DATA']);
+  lines.push('');
   lines.push(dataheader);
 
   site.coords.forEach((coord, ci) => {
@@ -35,7 +64,7 @@ function buildCSV(site, env, obsData, environmentData = {}) {
           dets.forEach((d, di) => {
               lines.push([
               ci + 1, coord.lat, coord.lng,
-              m.min, m.cycle, `"${m.playing}"`,
+              m.min,
               sp, di + 1, d.obs, d.dist || '', `"${(d.notes || '').replace(/"/g, '""')}"`,
             ].join(','));
           });
@@ -44,14 +73,22 @@ function buildCSV(site, env, obsData, environmentData = {}) {
     });
   });
 
-  return lines.join('\n');
+  return lines.map(line => 
+    Array.isArray(line) ? line.map(val => {
+      // Escape quotes in values and wrap in quotes if needed
+      if (typeof val === 'string' && (val.includes(',') || val.includes('"'))) {
+        return `"${val.replace(/"/g, '""')}"`;
+      }
+      return val;
+    }).join(',') : line
+  ).join('\n');
 }
 
 export default function SummaryScreen({ route, navigation }) {
   const { site, env = {}, obsData, environmentData = {}, startTimes = {} } = route.params;
   async function handleExport() {
     try {
-      const csv = buildCSV(site, env, obsData, environmentData);
+      const csv = buildCSV(site, env, obsData, environmentData, startTimes);
       const filename = `survey_${site.name.replace(/\s+/g, '_')}_${env.date}.csv`;
       const file = new File(Paths.document, filename);
       await file.write(csv);
