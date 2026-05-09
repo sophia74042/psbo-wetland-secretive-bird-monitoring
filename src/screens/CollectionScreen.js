@@ -241,6 +241,15 @@ export default function CollectionScreen({ route, navigation }) {
   }, [player, broadcastMuted]);
 
   function openCell(mi, sp) {
+    // Prevent opening modal if broadcast hasn't started yet
+    if (!startTimes[coordIdx]) {
+      Alert.alert(
+        'Start the broadcast first',
+        'Please play the survey broadcast recording before recording observations.'
+      );
+      return;
+    }
+    
     const dets = obsData[coordIdx][mi][sp];
     setModalInfo({ 
       mi, 
@@ -291,23 +300,23 @@ export default function CollectionScreen({ route, navigation }) {
   }
 
   // TODO: Remove these skip functions and buttons after testing
-  async function skipBackward() {
-    try {
-      const newTime = Math.max(0, audioCurrentTime - 10);
-      await player.seekTo(newTime);
-    } catch (error) {
-      console.error('Error skipping backward:', error);
-    }
-  }
+  // async function skipBackward() {
+  //   try {
+  //     const newTime = Math.max(0, audioCurrentTime - 10);
+  //     await player.seekTo(newTime);
+  //   } catch (error) {
+  //     console.error('Error skipping backward:', error);
+  //   }
+  // }
 
-  async function skipForward() {
-    try {
-      const newTime = Math.min(audioDuration, audioCurrentTime + 10);
-      await player.seekTo(newTime);
-    } catch (error) {
-      console.error('Error skipping forward:', error);
-    }
-  }
+  // async function skipForward() {
+  //   try {
+  //     const newTime = Math.min(audioDuration, audioCurrentTime + 10);
+  //     await player.seekTo(newTime);
+  //   } catch (error) {
+  //     console.error('Error skipping forward:', error);
+  //   }
+  // }
 
   function advancePointOrFinish() {
     stopBroadcast();
@@ -319,6 +328,14 @@ export default function CollectionScreen({ route, navigation }) {
   }
 
   function handleDone() {
+    if (lastFinishedCycle !== 2) {
+      Alert.alert(
+        'Broadcast not complete',
+        'Please play the survey broadcast recording through both cycles before finishing this point.'
+      );
+      return;
+    }
+    
     if (!hasAnyObservations(obsData, coordIdx)) {
       Alert.alert(
         'No observations recorded',
@@ -404,6 +421,17 @@ export default function CollectionScreen({ route, navigation }) {
         </View>
         <Text style={s.coordLabel}>Point {coordIdx + 1} of {total}</Text>
         <Text style={s.coordVal}>{coord.lat.toFixed(4)}, {coord.lng.toFixed(4)}</Text>
+        {startTimes[coordIdx] && (
+          <Text style={s.startTimeVal}>
+            Started: {new Date(startTimes[coordIdx]).toLocaleString('en-US', { 
+              month: 'short', 
+              day: 'numeric', 
+              hour: '2-digit', 
+              minute: '2-digit',
+              hour12: true 
+            })}
+          </Text>
+        )}
         <View style={s.progressBar}>
           <View style={[s.progressFill, { width: `${Math.round(progress * 100)}%` }]} />
         </View>
@@ -422,7 +450,7 @@ export default function CollectionScreen({ route, navigation }) {
           </TouchableOpacity>
           
           {/* TODO: Remove skip buttons after testing */}
-          <TouchableOpacity
+          {/* <TouchableOpacity
             style={s.skipBtn}
             onPress={skipBackward}
             accessibilityRole="button"
@@ -438,7 +466,7 @@ export default function CollectionScreen({ route, navigation }) {
             accessibilityLabel="Skip forward 10 seconds"
           >
             <Text style={s.skipBtnText}>+10s ⏭</Text>
-          </TouchableOpacity>
+          </TouchableOpacity> */}
           
           <TouchableOpacity
             style={[s.muteBtn, broadcastMuted && s.muteBtnActive]}
@@ -540,11 +568,13 @@ export default function CollectionScreen({ route, navigation }) {
                   <View key={row.key} style={[s.dataRow, isHighlighted && s.dataRowHighlighted, { minHeight: minuteRowHeights[mi] }]}>
                     {SPECIES.map(sp => {
                       const dets = obsData[coordIdx][mi][sp];
+                      const broadcastStarted = !!startTimes[coordIdx];
                       return (
                         <TouchableOpacity
                           key={sp}
-                          style={s.spCell}
+                          style={[s.spCell, !broadcastStarted && s.spCellDisabled]}
                           onPress={() => openCell(mi, sp)}
+                          disabled={!broadcastStarted}
                         >
                           {dets.map((d, di) => (
                             <View key={di} style={[s.detChip, { backgroundColor: OBS_COLORS[d.obs].bg, borderColor: OBS_COLORS[d.obs].border }]}>
@@ -553,8 +583,8 @@ export default function CollectionScreen({ route, navigation }) {
                               </Text>
                             </View>
                           ))}
-                          <View style={s.addChip}>
-                            <Text style={s.addChipText}>+</Text>
+                          <View style={[s.addChip, !broadcastStarted && s.addChipDisabled]}>
+                            <Text style={[s.addChipText, !broadcastStarted && s.addChipTextDisabled]}>+</Text>
                           </View>
                         </TouchableOpacity>
                       );
@@ -568,7 +598,11 @@ export default function CollectionScreen({ route, navigation }) {
       </ScrollView>
 
       <View style={s.footer}>
-        <TouchableOpacity style={s.doneBtn} onPress={handleDone}>
+        <TouchableOpacity 
+          style={[s.doneBtn, lastFinishedCycle !== 2 && s.doneBtnDisabled]} 
+          onPress={handleDone}
+          disabled={lastFinishedCycle !== 2}
+        >
           <Text style={s.doneBtnText}>
             {coordIdx < total - 1 ? `Done with point ${coordIdx + 1} →` : 'Finish survey →'}
           </Text>
@@ -603,6 +637,7 @@ const s = StyleSheet.create({
   dotDone: { backgroundColor: '#639922', borderColor: '#639922' },
   coordLabel: { fontSize: 13, fontWeight: '500', color: '#1a1a1a', marginBottom: 2 },
   coordVal: { fontSize: 12, color: '#888', marginBottom: 6 },
+  startTimeVal: { fontSize: 12, color: '#0c447c', fontWeight: '500', marginBottom: 6 },
   progressBar: { height: 4, backgroundColor: '#eee', borderRadius: 2, overflow: 'hidden' },
   progressFill: { height: 4, backgroundColor: '#378ADD', borderRadius: 2 },
   broadcastBar: { backgroundColor: '#fff', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: '#ddd' },
@@ -686,12 +721,16 @@ const s = StyleSheet.create({
   minNum: { fontSize: 12, fontWeight: '500', color: '#333' },
   minPlaying: { fontSize: 9, color: '#999', lineHeight: 13 },
   spCell: { width: 72, alignItems: 'center', paddingHorizontal: 2, gap: 2 },
+  spCellDisabled: { opacity: 0.5 },
   detChip: { borderRadius: 4, paddingHorizontal: 4, paddingVertical: 2, borderWidth: 0.5, width: '100%', alignItems: 'center' },
   detChipText: { fontSize: 10, fontWeight: '500' },
   addChip: { borderWidth: 0.5, borderColor: '#ccc', borderStyle: 'dashed', borderRadius: 4, width: '100%', alignItems: 'center', justifyContent: 'center', minHeight: 30 },
   addChipText: { fontSize: 11, color: '#aaa' },
+  addChipDisabled: { borderColor: '#ddd', backgroundColor: '#fafafa' },
+  addChipTextDisabled: { color: '#ccc' },
   footer: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, paddingBottom: 32, backgroundColor: '#fff', borderTopWidth: 0.5, borderTopColor: '#ddd' },
   doneBtn: { backgroundColor: '#E6F1FB', borderRadius: 8, borderWidth: 0.5, borderColor: '#85B7EB', padding: 14, alignItems: 'center' },
+  doneBtnDisabled: { backgroundColor: '#E8E8E8', borderColor: '#999', opacity: 0.6 },
   doneBtnText: { color: '#0C447C', fontSize: 16, fontWeight: '500' },
   headerSpeciesRow: { flexDirection: 'row' },
 });
