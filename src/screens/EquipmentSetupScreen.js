@@ -1,30 +1,93 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import {
   View, Text, TouchableOpacity, StyleSheet, Alert, Platform,
 } from 'react-native';
+import { BleManager } from 'react-native-ble-plx';
 
 export default function EquipmentSetupScreen({ route, navigation }) {
   const { site, env } = route.params || {};
   const [bluetoothConnected, setBluetoothConnected] = useState(false);
   const [isChecking, setIsChecking] = useState(false);
+  const bleManagerRef = useRef(null);
 
   useEffect(() => {
+    // Initialize BleManager on first mount
+    if (!bleManagerRef.current) {
+      try {
+        bleManagerRef.current = new BleManager();
+      } catch (error) {
+        console.error('Failed to initialize BleManager:', error);
+        setBluetoothConnected(false);
+        return;
+      }
+    }
+
     checkBluetoothConnection();
+
+    // Cleanup on unmount
+    return () => {
+      try {
+        bleManagerRef.current?.stopDeviceScan();
+        bleManagerRef.current?.destroy();
+        bleManagerRef.current = null;
+      } catch (error) {
+        console.error('Cleanup error:', error);
+      }
+    };
   }, []);
 
   async function checkBluetoothConnection() {
     setIsChecking(true);
     try {
-      // For Expo projects, we can use a simple check or request user to verify manually
-      // If you need real BLE scanning, you'll need to use `expo prebuild` with react-native-ble-plx
+      const manager = bleManagerRef.current;
       
-      // Simulated check with 2 second delay to feel like a real scan
-      // In a production app with native builds, replace this with actual BLE implementation
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      if (!manager) {
+        setBluetoothConnected(false);
+        setIsChecking(false);
+        return;
+      }
+
+      // Check if Bluetooth is enabled
+      const state = await manager.state();
       
-      // Always assume not connected initially - user can manually check
-      setBluetoothConnected(false);
-      setIsChecking(false);
+      if (state !== 'PoweredOn') {
+        setBluetoothConnected(false);
+        setIsChecking(false);
+        return;
+      }
+
+      // Request permissions (Android 12+)
+      if (Platform.OS === 'android') {
+        try {
+          await manager.requestPermissions();
+        } catch (error) {
+          console.warn('Permission request error:', error);
+        }
+      }
+
+      // Scan for devices for 5 seconds
+      manager.startDeviceScan(null, null, (error, device) => {
+        if (error) {
+          console.error('Scan error:', error);
+          setBluetoothConnected(false);
+          setIsChecking(false);
+          manager.stopDeviceScan();
+          return;
+        }
+
+        // If we find any connectable device, consider Bluetooth as available
+        if (device && device.isConnectable) {
+          setBluetoothConnected(true);
+          manager.stopDeviceScan();
+          setIsChecking(false);
+        }
+      });
+
+      // Stop scanning after 5 seconds
+      setTimeout(() => {
+        manager.stopDeviceScan();
+        setIsChecking(false);
+      }, 5000);
     } catch (error) {
       console.error('Error checking Bluetooth:', error);
       setBluetoothConnected(false);
