@@ -50,7 +50,7 @@ export default function EquipmentSetupScreen({ route, navigation }) {
       navigation.goBack();
       return;
     }
-    navigation.navigate('Collection', { site, env });
+    navigation.navigate('SurveyPointSetup', { site, env });
   }
 
   return (

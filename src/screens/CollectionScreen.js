@@ -52,7 +52,7 @@ function getMinuteRowHeight(obsData, coordIdx, minuteIdx) {
   return EMPTY_MINUTE_ROW_HEIGHT + maxDetections * DETECTION_CHIP_ROW_HEIGHT;
 }
 
-function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onClose, onSave }) {
+function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onClose, onSave, landmarks }) {
   const [localDets, setLocalDets] = useState(() => detections.map(d => ({ ...d })));
 
   function addIndividual() {
@@ -94,6 +94,17 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
           <Text style={ms.subtitle}>{m ? m.playing : ''}</Text>
         </View>
         <ScrollView style={ms.scroll} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
+          {landmarks && landmarks.length > 0 && (
+            <View style={ms.landmarksReminder}>
+              <Text style={ms.landmarksTitle}>Reference landmarks:</Text>
+              {landmarks.map((landmark, li) => (
+                <View key={li} style={ms.landmarkLine}>
+                  <Text style={ms.landmarkText}>{landmark.name}</Text>
+                  <Text style={ms.landmarkDist}>{landmark.distance}m</Text>
+                </View>
+              ))}
+            </View>
+          )}
           {localDets.map((det, i) => (
             <View key={i} style={ms.indRow}>
               <Text style={ms.indNum}>{i + 1}.</Text>
@@ -120,6 +131,7 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
                   />
                   <Text style={ms.distUnit}>m</Text>
                 </View>
+                
                 <TextInput
                   style={ms.notesInput}
                   value={det.notes}
@@ -153,7 +165,7 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
 }
 
 export default function CollectionScreen({ route, navigation }) {
-  const { site, env } = route.params;
+  const { site, env, landmarks = [] } = route.params;
   const [coordIdx, setCoordIdx] = useState(0);
   const [obsData, setObsData] = useState(() => initObs(site));
   const [modalInfo, setModalInfo] = useState(null);
@@ -545,6 +557,7 @@ export default function CollectionScreen({ route, navigation }) {
           minuteIdx={modalInfo.mi}
           species={modalInfo.sp}
           detections={modalInfo.dets}
+          landmarks={landmarks}
           onClose={() => setModalInfo(null)}
           onSave={(dets) => { saveCell(modalInfo.mi, modalInfo.sp, dets); setModalInfo(null); }}
         />
@@ -672,6 +685,39 @@ const ms = StyleSheet.create({
   distRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   distInput: { borderWidth: 0.5, borderColor: '#ccc', borderRadius: 8, padding: 8, fontSize: 13, color: '#1a1a1a', width: 90 },
   distUnit: { fontSize: 13, color: '#888' },
+  landmarksReminder: {
+    backgroundColor: '#f0f7ff',
+    borderWidth: 0.5,
+    borderColor: '#d4e6f7',
+    borderRadius: 6,
+    padding: 8,
+    marginVertical: 8,
+  },
+  landmarksTitle: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1a5490',
+    marginBottom: 6,
+  },
+  landmarkLine: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+    paddingBottom: 4,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#e0ecf8',
+  },
+  landmarkText: {
+    fontSize: 11,
+    color: '#1a5490',
+    flex: 1,
+  },
+  landmarkDist: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#1a5490',
+    marginLeft: 8,
+  },
   notesInput: {
     borderWidth: 0.5,
     borderColor: '#ccc',
