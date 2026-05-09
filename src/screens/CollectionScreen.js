@@ -94,10 +94,10 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
           <Text style={ms.subtitle}>{m ? m.playing : ''}</Text>
         </View>
         <ScrollView style={ms.scroll} contentContainerStyle={{ padding: 16 }} keyboardShouldPersistTaps="handled">
-          {landmarks && landmarks.length > 0 && (
+          {landmarks[coordIdx] && landmarks[coordIdx].length > 0 && (
             <View style={ms.landmarksReminder}>
               <Text style={ms.landmarksTitle}>Reference landmarks:</Text>
-              {landmarks.map((landmark, li) => (
+              {landmarks[coordIdx].map((landmark, li) => (
                 <View key={li} style={ms.landmarkLine}>
                   <Text style={ms.landmarkText}>{landmark.name}</Text>
                   <Text style={ms.landmarkDist}>{landmark.distance}m</Text>
@@ -165,8 +165,8 @@ function DetectionModal({ visible, coordIdx, minuteIdx, species, detections, onC
 }
 
 export default function CollectionScreen({ route, navigation }) {
-  const { site, env, landmarks = [] } = route.params;
-  const [coordIdx, setCoordIdx] = useState(0);
+  const { site, env, landmarks = {}, coordIdx: initialCoordIdx } = route.params;
+  const [coordIdx, setCoordIdx] = useState(initialCoordIdx);
   const [obsData, setObsData] = useState(() => initObs(site));
   const [modalInfo, setModalInfo] = useState(null);
   const [broadcastLoaded, setBroadcastLoaded] = useState(false);
@@ -295,7 +295,7 @@ export default function CollectionScreen({ route, navigation }) {
   function advancePointOrFinish() {
     stopBroadcast();
     if (coordIdx < total - 1) {
-      setCoordIdx(coordIdx + 1);
+      navigation.push('SurveyPointSetup', { site, env, obsData, coordIdx: coordIdx + 1 });
     } else {
       navigation.navigate('Summary', { site, env, obsData });
     }
@@ -321,11 +321,11 @@ export default function CollectionScreen({ route, navigation }) {
 
   function goBack() {
     stopBroadcast();
-    if (coordIdx > 0) {
-      setCoordIdx(coordIdx - 1);
-    } else {
-      navigation.goBack();
-    }
+    // if (coordIdx > 0) {
+    //   setCoordIdx(coordIdx - 1);
+    // } else {
+    navigation.goBack();
+    // }
   }
 
   const filled = MINUTES.filter((_, mi) => SPECIES.some(sp => obsData[coordIdx][mi][sp].length > 0)).length;

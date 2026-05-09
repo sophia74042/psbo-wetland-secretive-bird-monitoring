@@ -16,12 +16,15 @@ function initObs(site) {
 }
 
 export default function SurveyPointSetupScreen({ route, navigation }) {
-  const { site, env } = route.params;
-  const coordIdx = 0; // Always start at first point
-  const obsData = useMemo(() => initObs(site), [site]);
+  const { site, env, obsData : passedObsData } = route.params;
+  const coordIdx = route.params.coordIdx || 0; // start at first point
+  const obsData = useMemo(
+    () => passedObsData ?? initObs(site),
+    [passedObsData, site]
+  );  
   const coord = site.coords[coordIdx];
 
-  const [landmarks, setLandmarks] = useState([]);
+  const [landmarks, setLandmarks] = useState({});
   const [currentName, setCurrentName] = useState('');
   const [currentDistance, setCurrentDistance] = useState('');
 
@@ -35,21 +38,22 @@ export default function SurveyPointSetupScreen({ route, navigation }) {
       return;
     }
     
-    setLandmarks(prev => [...prev, { name: currentName.trim(), distance: currentDistance.trim() }]);
+    setLandmarks(prev => ({ ...prev, [coordIdx]: [...(prev[coordIdx] || []), { name: currentName.trim(), distance: currentDistance.trim() }] }));
     setCurrentName('');
     setCurrentDistance('');
   }
 
   function removeLandmark(index) {
-    setLandmarks(prev => prev.filter((_, i) => i !== index));
+    setLandmarks(prev => ({ ...prev, [coordIdx]: prev[coordIdx].filter((_, i) => i !== index) }));
   }
 
   function handleContinue() {
-    navigation.navigate('Collection', { 
+    navigation.push('Collection', { 
       site, 
       env, 
       obsData,
-      landmarks
+      landmarks,
+      coordIdx
     });
   }
 
@@ -81,9 +85,9 @@ export default function SurveyPointSetupScreen({ route, navigation }) {
             Add landmarks at this survey point with their distances. These will help you estimate distances when recording observations.
           </Text>
 
-          {landmarks.length > 0 && (
+          {landmarks[coordIdx]?.length > 0 && (
             <View style={s.landmarksList}>
-              {landmarks.map((landmark, i) => (
+              {landmarks[coordIdx].map((landmark, i) => (
                 <View key={i} style={s.landmarkItem}>
                   <View style={s.landmarkInfo}>
                     <Text style={s.landmarkName}>{landmark.name}</Text>
