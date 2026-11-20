@@ -1,8 +1,12 @@
 # Bird Survey App
 
-A mobile data collection app for wetland bird surveys, built with Expo React Native.
+A mobile data collection app for Puget Sound Bird Observatory's [Secretive Wetland Bird Survey](https://www.pugetsoundbirds.org/1st-project), built with Expo React Native.
 
----
+See a demo [here](https://youtu.be/dMz-SufWsbQ)!
+
+<img width="296" height="611" alt="Screenshot 2026-11-20 at 10 15 34 AM" src="https://github.com/user-attachments/assets/7acaa432-401d-4bde-9e1a-e7238f84bcee" />
+<img width="292" height="606" alt="Screenshot 2026-11-20 at 10 16 13 AM" src="https://github.com/user-attachments/assets/d2135fe5-3dab-4222-8f1c-b6ed5d993676" />
+<img width="297" height="614" alt="Screenshot 2026-11-20 at 10 16 43 AM" src="https://github.com/user-attachments/assets/32f02de3-1348-4cd2-9d42-9192aa41d288" />
 
 ## Setup (one-time, on your computer)
 
