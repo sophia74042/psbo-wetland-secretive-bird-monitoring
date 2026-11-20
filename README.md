@@ -1,4 +1,4 @@
-# Bird Survey App
+# Secretive Wetland Bird Survey App
 
 A mobile data collection app for Puget Sound Bird Observatory's [Secretive Wetland Bird Survey](https://www.pugetsoundbirds.org/1st-project), built with Expo React Native.
 
